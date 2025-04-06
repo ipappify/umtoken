@@ -4,7 +4,7 @@
 
 Text needs to be tokenized before it can be processed by neural language models such as translation models or LLMs.
 
-Standard tokenizers such as BPE (Byte Pair Encoding) and WordPiece are based on character-level tokenization and work well for languages such as English and Chinese that do not have a rich morphology.
+Standard tokenizers such as BPE (Byte Pair Encoding) and WordPiece work well for languages such as English and Chinese that do not have a rich morphology.
 
 However, for many European languages with rich morphology such as Romance languages, Slavic languages, or certain Germanic languages, the number of tokens (subwords) per word can be very high. The subwords are often quite different between inflected forms of the same word and are often not meaningful. Worse, the subwords depend on the case and leading whitespace of the input word.
 
@@ -19,7 +19,7 @@ The basic idea of the umtoken tokenizer is to factorize words into **2-tuples of
 
 ## Description
 
-umtoken is a tokenizer for multilingual text data that uses properties like morphological rules to generate a vocabulary of more meaningful tokens and fewer tokens per word. The tokenizer is based on a modified unigram model and is designed to be used in transformer-based models for natural language processing tasks.
+**umtoken** is a tokenizer for multilingual text data that uses properties like morphological rules to generate a vocabulary of more meaningful tokens and fewer tokens per word. The tokenizer is based on a modified unigram model and is designed to be used in transformer-based models for natural language processing tasks.
 
 The umtoken tokenizer is a rewrite of our [IP.Translator](https://www.ipappify.de/en/ip-translator) tokenizer, which we have been using for our translation models since 2021. The code has been cleaned up and optimized for readability. Some unnecessary features have been removed, and some (hopefully, all) minor design flaws have been fixed.
 
@@ -59,7 +59,7 @@ The rules may include morphological operations to transform bases (= vocabulary 
 
 ### Examples
 
-* umtoken (`wikipedia__eu5_24k_tied.json`, trained on hugging face dataset wikimedia/wikipedia for the 5 most common EU languages (en, de, fr, it, es), 24k vocab size):
+* umtoken-eu8_40k--tied (`./assets/wikipedia_eu8_40k_l3--tied.json`, **40k** vocab size, trained on wikimedia/wikipedia for en, de, fr, es, it, nl, pl, ro):
 
 | Language | Word                 | Tokens                  | Properties           |
 |----------|----------------------|-------------------------|----------------------|
@@ -106,7 +106,7 @@ Morphological operations and suffixes are combined into morphological rules (see
 
 ## Comparison
 
-Standard tokenizers like BPE (Byte Pair Encoding) and WordPiece are based on character-level tokenization and neither consider leading whitespace, case, nor morphological rules as further dimensions of a token. The following figure compares the tokenization of umtoken and BPE/WordPiece tokenizers.
+Standard tokenizers like BPE (Byte Pair Encoding) and WordPiece neither consider leading whitespace, case, nor morphological rules as further dimensions of a token. The following figure compares the tokenization of umtoken and BPE/WordPiece tokenizers.
 
 The figure shows the tokens per word ratio by the 8 most commonly spoken languages in the EU (eu8) on the huggingface dataset wikimedia/wikipedia, for: 
 - umtoken-eu8_40k--lax (`./assets/wikipedia_eu8_40k_l3--lax.json`, **40k** vocab size, trained on wikimedia/wikipedia, without tying vocab and rules by language)
@@ -211,6 +211,12 @@ To extract vocabulary from text data, you may need to install additional package
 
 ```bash
 pip install polars datasets pyzstd
+```
+
+For using the wrapper `UnimorphTokenizer` which makes the umtoken tokenizer available as a huggingface `PreTrainedTokenizerBase`, you need to have huggingface transforms installed:
+
+```bash
+pip transformers
 ```
 
 ## Integration
