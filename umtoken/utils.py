@@ -54,6 +54,7 @@ def format(ids, morpher, no_join: bool = False, apply_ws: bool = False, apply_ca
                 end_base = base[common_len:]
                 end_stem = stem[common_len:]
                 stem = common_part + "[" + end_base + "->" + end_stem + "]"
+        stem = stem.replace("G", " ")
         parts.append(ws + tocase(stem + "+" + rule.suffix.replace("$",""), cs) or "/")
         eow_before = rule.suffix.endswith("X")
         if not eow_before:
