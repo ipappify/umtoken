@@ -74,6 +74,7 @@ def test_normalize_ipt_no_preserve():
         
 def test_escape():
     examples = [
+        ("    ", "GGGG"),
         ("\n\n", "NN"),
         (" ws", "Gws"),
         ("ρ", "ρ"),
@@ -88,6 +89,7 @@ def test_escape():
         
 def test_split_and_escape():
     examples = [
+        "    indentation", 
         "Resistivity is_commonly represented by the Greek letter ρ (rho). The SI unit of electrical resistivity is the ohm-meter (Ω⋅m)."
     ]
     

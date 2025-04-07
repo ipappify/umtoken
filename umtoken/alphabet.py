@@ -225,7 +225,7 @@ class Encoding():
         
         ws = 0
         up = 0
-        if word[0] == " ":
+        if word[0] == " " and word[1] != " ":
             ws = 1
             word = word[1:]
         if word[0].isupper():
