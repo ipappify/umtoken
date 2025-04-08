@@ -86,6 +86,20 @@ def test_escape():
     for example, expected in examples:
         actual = pre.escape(example, handle_reserved=True)
         assert actual == expected, f"Expected {expected}, got {pre.escape(example)}"
+
+def test_escape_as_tupple():
+    examples = [
+        ("    ", ("GGGG", 0, 0)),
+        ("\n\n", ("NN", 0, 0)),
+        (" ws", ("ws", 1, 0)),
+        ("UNRESERVED", ("unreserved", 0, 2)),
+        ("RESERVED", ("RESERVED", 0, 0)),
+        ("火影", ("VE781ABWVE5BDB1W", 0, 0)),
+    ]
+    pre = PreTokenizer(alphabet=EU24_ALPHABET, normalization="ipt", reserved_tokens=["RESERVED"])
+    for example, expected in examples:
+        actual = pre.escape(example, handle_reserved=True, return_as_tuple=True)
+        assert actual == expected, f"Expected {expected}, got {pre.escape(example)}"
         
 def test_split_and_escape():
     examples = [
