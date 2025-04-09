@@ -14,6 +14,7 @@ from .utils import format, get_rules_bitmask
 
 MIN_LOGIT = -20.0
 CUTOFF = 1E-3
+SHIFT = 1E-5 # tie-breaking for ambiguous paths
 
 def digamma(x):
     "digamma function assumes x > 0."
@@ -236,10 +237,10 @@ class Model():
         """
         lattice = Lattice(len(word)+1)
         for vocab_id, rule_id, i, j in self.morpher.decompose(word, langs, force_slow=force_slow):
-            logit = (self.vocab_logits[vocab_id] * self.alpha +
-                     self.rules_logits[rule_id] * self.beta)
+            logit = (float(self.vocab_logits[vocab_id]) * self.alpha +
+                     float(self.rules_logits[rule_id]) * self.beta)
             penalty = self.rules[rule_id].penalty
-            lattice.add_edge(i, j, logit - penalty, (vocab_id, rule_id))
+            lattice.add_edge(i, j, logit - penalty - i * SHIFT, (vocab_id, rule_id))
         return lattice
     
     def rearrange_vocab(self, order):
