@@ -15,7 +15,7 @@ common: deur-en
 infinitive: verdel-en
             verwerk-en
             verdwijn-en
-PPP:        verdeel-d verdeel-de verdeel-ds
+past part:  verdeel-d verdeel-de verdeel-ds
             verwerk-t verwerk-te verwerk-ts
             verdwen-en verdwen-ene verdwen-ens
 indicative, present:   verdeel-t verdeel-en
@@ -26,7 +26,7 @@ indicative, imperfect: verdeel-de verdeel-den
                        verdwijn-t verdwijn-en
 
 ### ppp with ge- prefix
-PPP:        [->ge]deel-d [->ge]deel-de [->ge]deel-ds
+past part:  [->ge]deel-d [->ge]deel-de [->ge]deel-ds
             [->ge]werk-t [->ge]werk-te [->ge]werk-ts
             [->ge]zi-en [->ge]zi-ene [->ge]zi-ens
 ``` python

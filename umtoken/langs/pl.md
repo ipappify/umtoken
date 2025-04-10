@@ -156,8 +156,8 @@ voc: okn-o okn-a
 infinitive: koch-ać
 ADV:        koch-ając
 N:          koch-anie
-PPA:        koch-ający koch-ająca koch-ające koch-ający koch-ające
-PPP:        koch-any koch-ana koch-ane koch-ani koch-ane
+pres part:  koch-ający koch-ająca koch-ające koch-ający koch-ające
+past part:  koch-any koch-ana koch-ane koch-ani koch-ane
 indicative, present:   koch-am koch-asz koch-a koch-amy koch-acie koch-ają
 indicative, imperfect: koch-ał koch-ała koch-ało koch-ali koch-ały
                        koch-ano
@@ -169,8 +169,8 @@ infinitive: widz-ieć
             pal-ić
 ADV:        widz-ąc
 N:          widz-enie
-PPA:        widz-ący widz-ąca widz-ące widz-ący widz-ące
-PPP:        widz-iany widz-iana widz-iane widz-iani widz-iane
+pres part:  widz-ący widz-ąca widz-ące widz-ący widz-ące
+past part:  widz-iany widz-iana widz-iane widz-iani widz-iane
             pal-ony pal-ona pal-one pal-eni pal-one
 indicative, present:   widz-ę widz-isz widz-i widz-imy widz-icie widz-ą
 indicative, imperfect: widz-iał widz-iała widz-iało widz-ieli widz-iały
@@ -186,8 +186,8 @@ indicative, imperfect: widz-iał widz-iała widz-iało widz-ieli widz-iały
 infinitive: mal-ować
 ADV:        mal-ując
 N:          mal-owanie
-PPA:        mal-ujący mal-ująca mal-ujące mal-ujący mal-ujące
-PPP:        mal-owany mal-owana mal-owane mal-owani mal-owane
+pres part:  mal-ujący mal-ująca mal-ujące mal-ujący mal-ujące
+past part:  mal-owany mal-owana mal-owane mal-owani mal-owane
 indicative, present:   mal-uję mal-ujesz mal-uje mal-ujemy mal-ujecie mal-ują
 indicative, imperfect: mal-ował mal-owała mal-owało mal-owali mal-owały
                        mal-owano

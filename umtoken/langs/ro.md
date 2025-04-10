@@ -14,7 +14,7 @@ n nouns: ou-/ ou-ă ou-l ou-ăle ou-lui ou-ălor ou-le ou-ălor
 ### I verbs
 infinitive: cr-ea
 gerund:     cr-eând
-PPP:        cr-eat cr-eată cr-eați cr-eate cr-eatul cr-eata cr-eații cr-eatele cr-eat cr-eate cr-eați cr-eate cr-eatului cr-eatei cr-eaților cr-eatelor
+past part:  cr-eat cr-eată cr-eați cr-eate cr-eatul cr-eata cr-eații cr-eatele cr-eat cr-eate cr-eați cr-eate cr-eatului cr-eatei cr-eaților cr-eatelor
 indicative, present:   cr-eez cr-eezi cr-eează cr-eăm cr-eați cr-eează
                        vegh-ez vegh-ezi vegh-ează vegh-em vegh-eați vegh-ează
 indicative, imperfect: cr-eam cr-eai cr-ea cr-eam cr-eați cr-eau
@@ -25,7 +25,7 @@ indicative, perfect:   cr-eai cr-eași cr-eă cr-earăm cr-earăți cr-eară
 ### II verbs
 infinitive: put-ea
 gerund:     put-ând
-PPP:        put-ut put-ută put-uți put-ute put-utul put-uta put-uții put-utele put-ut put-ute put-uți put-ute put-utului put-utei put-uților put-utelor
+past part:  put-ut put-ută put-uți put-ute put-utul put-uta put-uții put-utele put-ut put-ute put-uți put-ute put-utului put-utei put-uților put-utelor
 indicative, present:   put-em put-eți
 indicative, imperfect: put-eam put-eai put-ea put-eam put-eați put-eau
 indicative, perfect:   put-ui put-uși put-u put-urăm put-urăți put-ură
@@ -33,7 +33,7 @@ indicative, perfect:   put-ui put-uși put-u put-urăm put-urăți put-ură
 ### III verbs
 infinitive: cred-e
 gerund:     crez-ând
-PPP:        crez-ut crez-ută crez-uți crez-ute crez-utul crez-uta crez-uții crez-utele crez-ut crez-ute crez-uți crez-ute crez-utului crez-utei crez-uților crez-utelor
+past part:  crez-ut crez-ută crez-uți crez-ute crez-utul crez-uta crez-uții crez-utele crez-ut crez-ute crez-uți crez-ute crez-utului crez-utei crez-uților crez-utelor
 indicative, present:   cred-/ crez-i cred-e cred-em cred-eți cred-/
 indicative, imperfect: cred-eam cred-eai cred-ea cred-eam cred-eați cred-eau
 indicative, perfect:   crez-ui crez-uși crez-u crez-urăm crez-urăți crez-ură
@@ -43,7 +43,7 @@ infinitive: dorm-i
             hotăr-î
 gerund:     dorm-ind
             hotăr-ând
-PPP:        dorm-it
+past part:  dorm-it
             hotăr-ât
 indicative, present:   dorm-/ dorm-i doarm-e dorm-im dorm-iți dorm-/
                        hotăr-ăsc hotăr-ăști hotăr-ăște hotăr-âm hotăr-âți hotăr-ăsc

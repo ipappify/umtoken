@@ -19,12 +19,12 @@ gerund:     lov-ing
 V>N:        lov-er lov-ers execut-able execut-ables feel-ing feel-ings
 V>ADJ:      lov-able sens-ible
 V>ADV:      lov-ably sens-ibly
-PPP:        lov-ed (free-d|fre-ed)
+past part:  lov-ed (free-d|fre-ed)
 indicative, present:   complet-e complet-es say-s
 indicative, imperfect: complet-ed
 
 ### verbs ending with -y
-PPP:        stud[y->i]-ed
+past part:  stud[y->i]-ed
 V>N:        dr[y->i]-er dr[y->i]-ers
 indicative, present:   stud[y->i]-es
 indicative, imperfect: stud[y->i]-ed
