@@ -37,14 +37,14 @@ op=RegexOp(r'ol$', r'ói', r'ói$', r'ol')
 ### nouns ending with -ão and plural form -ões
 common: informação-/ nformaç[ão->õ]-es
 ``` python
-op=RegexOp(r'ol$', r'ói', r'ói$', r'ol')
+op=RegexOp(r'ão$', r'õ', r'õ$', r'ão')
 ```
 
 ## verbs
 ### -ar verbs
 infinitive: jog-ar jog-ares jog-ar jog-armos jog-ardes jog-arem
 gerund:     jog-ando
-PPP:        jog-ado jog-ados jog-ada jog-adas
+past part:  jog-ado jog-ados jog-ada jog-adas
 indicative, present:   jog-o jog-as jog-a jog-amos jog-ais jog-am
 indicative, imperfect: jog-ava jog-avas jog-ava jog-ávamos jog-áveis jog-avam
 indicative, preterite: jog-uei jog-aste jog-ou jog-ámos jog-amos jog-astes jog-aram
@@ -52,7 +52,7 @@ indicative, preterite: jog-uei jog-aste jog-ou jog-ámos jog-amos jog-astes jog-
 ### -ir verbs
 infinitive: sorr-ir
 gerund:     sorr-indo
-PPP:        sorr-ido sorr-idos sorr-ida sorr-idas
+past part:  sorr-ido sorr-idos sorr-ida sorr-idas
 indicative, present:   sorr-io sorr-is sorr-i sorr-imos sorr-ides sorr-iem
 indicative, imperfect: sorr-ia sorr-ias sorr-ia sorr-íamos sorr-íeis sorr-iam
 indicative, preterite: sorr-i sorr-iste sorr-iu sorr-imos sorr-istes sorr-iram
@@ -60,7 +60,7 @@ indicative, preterite: sorr-i sorr-iste sorr-iu sorr-imos sorr-istes sorr-iram
 ### -er verbs
 infinitive: com-er
 gerund:     com-endo
-PPP:        com-ido com-idos com-ida com-idas
+past part:  com-ido com-idos com-ida com-idas
 indicative, present:   com-o com-es com-e com-emos com-eis com-em
 indicative, imperfect: com-ia com-ias com-ia com-íamos com-íeis com-iam
 indicative, preterite: com-i com-este com-eu com-emos com-estes com-eram
