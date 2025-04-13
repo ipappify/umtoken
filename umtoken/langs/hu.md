@@ -65,7 +65,8 @@ poss 1st plural: ág-unk     ág-aink
 poss 2nd plural: ág-atok    ág-aitok
 poss 3rd plural: ág-uk      ág-aik
 
-### instrumental / translative singluar (TODO: are there any nouns that end with f or fy?)
+### instrumental / translative singluar
+**TODO: are there any nouns that end with f or fy?**
 instrumental:   köny[v->vv]-el
                 ször[n->nn]y-el
                 á[g->gg]-al
@@ -80,13 +81,14 @@ op=RegexOp(r'([bdfgjklmnprstvz])(y?)$', r'\1\1\2', r'([bdfgjklmnprstvz])\1(y?)$'
 
 ## verbs
 ### -ik
+**TODO: duplicate consonant in pre­sent def: ját[s->ss]z - is this a common rule or an exception**
 pre­sent indef:    játsz-om játsz-ol játsz-ik játsz-unk játsz-otok játsz-anak
                   játsz-ok
                   törőd-öm törőd-sz törőd-ik törőd-ünk törőd-tök törőd-nek
                   törőd-ök
                   érkez-em érkez-el érkez-ik érkez-ünk érkez-tek érkez-nek
                   érkez-ek
-pre­sent def:      játsz-om játsz-od játssza játsszuk játsszátok játsszák
+pre­sent def:      játsz-om játsz-od játssz-a játssz-uk játssz-átok játssz-ák
 pre­sent 2nd obj:  játsz-alak
 past indef:       játsz-ottam játsz-ottál játsz-ott játsz-ottunk játsz-ottatok játsz-ottak
                   törőd-tem törőd-tél törőd-ött törőd-tünk törőd-tetek törőd-tek

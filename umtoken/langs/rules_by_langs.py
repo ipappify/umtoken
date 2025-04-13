@@ -7,9 +7,11 @@ from .de import DE_RULES
 from .en import EN_RULES
 from .es import ES_RULES
 from .fr import FR_RULES
+from .hu import HU_RULES
 from .it import IT_RULES
 from .nl import NL_RULES
 from .pl import PL_RULES
+from .pt import PT_RULES
 from .ro import RO_RULES
 
 RULES_BY_LANGS = {
@@ -17,9 +19,11 @@ RULES_BY_LANGS = {
     "en": EN_RULES,
     "es": ES_RULES,
     "fr": FR_RULES,
+    "hu": HU_RULES,
     "it": IT_RULES,
     "nl": NL_RULES,
     "pl": PL_RULES,
+    "pt": PT_RULES, 
     "ro": RO_RULES,
 }
 
