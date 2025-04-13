@@ -4,6 +4,7 @@ from warnings import warn
 from ..rules import MorphRule
 from .utils import DEFAULT_RULES
 from .de import DE_RULES
+from .el import EL_RULES
 from .en import EN_RULES
 from .es import ES_RULES
 from .fr import FR_RULES
@@ -16,6 +17,7 @@ from .ro import RO_RULES
 
 RULES_BY_LANGS = {
     "de": DE_RULES,
+    "el": EL_RULES,
     "en": EN_RULES,
     "es": ES_RULES,
     "fr": FR_RULES,
@@ -23,7 +25,7 @@ RULES_BY_LANGS = {
     "it": IT_RULES,
     "nl": NL_RULES,
     "pl": PL_RULES,
-    "pt": PT_RULES, 
+    "pt": PT_RULES,
     "ro": RO_RULES,
 }
 
