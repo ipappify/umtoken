@@ -117,6 +117,9 @@ def expand_languages(languages):
     if "eu8" in languages:
         languages.remove("eu8")
         languages.extend(["de", "en", "es", "fr", "it", "nl", "pl", "ro"])
+    if "eu12" in languages:
+        languages.remove("eu12")
+        languages.extend(["cs", "de", "el", "en", "es", "fr", "hu", "it", "nl", "pl", "pt", "ro"])
     if "eu24" in languages:
         languages.remove("eu24")
         languages.extend(["bg", "cs", "da", "de", "el", "en", "es", "et", 
