@@ -9,6 +9,8 @@ def get_blocks(lines):
     block = ""
     for line in lines:
         line = line.strip()
+        if line.startswith("*"): # comments
+            continue
         if re.match(r'^#+', line):
             if block:
                 blocks.append(block)
