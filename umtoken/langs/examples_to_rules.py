@@ -76,6 +76,10 @@ def main(args):
             op = get_op(block)
             constraint_regex = get_constraint_regex(block)
             
+            for g in groups:
+                for s in g:
+                    assert "-" in s, f"Error in {lang_md_file}: {s}"
+
             try:
                 suffixes = [s.split('-')[1:][-1] for g in groups for s in g if not "(-" in s]
                 suffixes = [s for s in suffixes if s != '/']
