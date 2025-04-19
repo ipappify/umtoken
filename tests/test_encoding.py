@@ -1,6 +1,6 @@
 # Path: test/test_encoding.py
 
-from umtoken.alphabet import Encoding, EU24_ALPHABET, MIN_ALPHABET
+from umtoken.alphabet import Encoding, EU24_ALPHABET, MIN_ALPHABET, ASCII_RESERVED_UTF8, ASCII_RESERVED_HEX, ASCII_RESERVED_UPPER
 
 def test_encoding():
     examples = [
@@ -24,9 +24,11 @@ def test_encoding():
     
     enc = Encoding(EU24_ALPHABET)
     
+    allowed_chars = EU24_ALPHABET + ASCII_RESERVED_UTF8 + ASCII_RESERVED_HEX + ASCII_RESERVED_UPPER
+    
     for example in examples:
         encoded = enc.escape(example)
-        assert all(e in EU24_ALPHABET for e in encoded)
+        assert all(e in allowed_chars for e in encoded)
         decoded = enc.unescape(encoded)
         assert example == decoded, f"Expected '{example}', got '{decoded}'"
 

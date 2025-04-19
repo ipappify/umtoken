@@ -13,20 +13,18 @@ MIN_GREEK_ALPHABET = "αβγδεζηθικλμνξοπρστυφχψω"
 # blank, tab, newline, and soft-hyphen will be escaped (as G, T, N, H, respectively)
 ASCII_DIGITS = "0123456789"
 ASCII_PUNCTUATION = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
-ASCII_HEX = "ABCDEF" # hexadecimal digits use uppercase letters
 
 # uppercase characters are used for escape sequences
-ASCII_RESERVED_EOW = "X"     # end of word - not used in encoding, but reserved for model to indicate end of word
-ASCII_ENCODING_SUTF8 = "V"   # starting a hexadecimal sequence encoding an out-of-alphabet character as utf-8
-ASCII_ENCODING_EUTF8 = "W"   # terminating a hexadecimal sequence encoding an out-of-alphabet character as utf-8
+ASCII_RESERVED_EOW = "X"       # end of word - not used in encoding, but reserved for model to indicate end of word
+ASCII_RESERVED_UPPER = "Y"     # upper case (Y for title, YY for upper case) - only used for formatting pre-tokenized text
+ASCII_RESERVED_UTF8 = "U"      # prefix for utf-8 encoded bytes - should not be used alone 
+ASCII_RESERVED_HEX = "ABCDEF"  # hex digits for utf-8 encoded bytes - should not be used alone
 ASCII_ENCODING_SPACE = "G"   # in pre-tokenized format, spaces are replaced by this token
 ASCII_ENCODING_SHY = "H"     # in pre-tokenized format, soft-hyphens are replaced by this token
 ASCII_ENCODING_NEWLINE = "N" # in pre-tokenized format, newlines are replaced by this token
 ASCII_ENCODING_TAB = "T"     # in pre-tokenized format, tabs are replaced by this token
-ASCII_ENCODING_UPPER = "U"   # in pre-tokenized format, single "U" indicated Title case, and double "UU" indicates all UPPER case
-ASCII_ENCODING = "".join([ASCII_ENCODING_SUTF8, ASCII_ENCODING_EUTF8, ASCII_ENCODING_SPACE,
-                          ASCII_ENCODING_SHY, ASCII_ENCODING_NEWLINE, ASCII_ENCODING_TAB, ASCII_ENCODING_UPPER])
-ASCII_ALL = "".join([ASCII_ENCODING, ASCII_DIGITS, ASCII_PUNCTUATION, ASCII_HEX])
+ASCII_ENCODING = "".join([ASCII_ENCODING_SPACE, ASCII_ENCODING_SHY, ASCII_ENCODING_NEWLINE, ASCII_ENCODING_TAB])
+ASCII_ALL = "".join([ASCII_ENCODING, ASCII_DIGITS, ASCII_PUNCTUATION])
 
 # 24 EU official languages
 EXT_CYRILLIC_BG = "йцъ" # Bulgarian
@@ -136,7 +134,8 @@ def _escape_char(c: str) -> str:
     elif c == "\u00AD":
         return ASCII_ENCODING_SHY
     else:
-        return ASCII_ENCODING_SUTF8 + c.encode("utf-8").hex().upper() + ASCII_ENCODING_EUTF8
+        bts = c.encode("utf-8")
+        return "".join(ASCII_RESERVED_UTF8 + bts[i:i+1].hex().upper() for i in range(len(bts)))
 
 def _unescape_char(c: str) -> str:
     if c == ASCII_ENCODING_SPACE:
@@ -145,15 +144,15 @@ def _unescape_char(c: str) -> str:
         return "\n"
     elif c == ASCII_ENCODING_TAB:
         return "\t"
-    elif c[0] == ASCII_ENCODING_SUTF8:
+    elif c[0] == ASCII_RESERVED_UTF8:
         try:
-            c = c[1:-1]
+            c = c.replace(ASCII_RESERVED_UTF8, "")
             return bytes.fromhex(c).decode("utf-8")
         except:
             return "?"
     return "?"
 
-_unescape_char_regex = re.compile(f"({ASCII_ENCODING_SUTF8}[0-9A-F]{{2,8}}{ASCII_ENCODING_EUTF8}|[{ASCII_ENCODING_SPACE}{ASCII_ENCODING_NEWLINE}{ASCII_ENCODING_TAB}])")
+_unescape_char_regex = re.compile(f"((?:{ASCII_RESERVED_UTF8}[0-9A-F]{{2}})+|[{ASCII_ENCODING_SPACE}{ASCII_ENCODING_NEWLINE}{ASCII_ENCODING_TAB}])")
 def _unescape_chars(cs: str) -> str:
     return _unescape_char_regex.sub(lambda m: _unescape_char(m.group(1)), cs)
 
@@ -184,8 +183,8 @@ def unescape(escaped: Union[str, Tuple[str, int, int]]) -> str:
         if word[0] == ASCII_ENCODING_SPACE:
             ws = 1
             word = word[1:]
-        if word[0] == ASCII_ENCODING_UPPER:
-            up = 2 if len(word) > 1 and word[1] == ASCII_ENCODING_UPPER else 1
+        if word[0] == ASCII_RESERVED_UPPER:
+            up = 2 if len(word) > 1 and word[1] == ASCII_RESERVED_UPPER else 1
             word = word[up:]
             
     word = _unescape_chars(word)
@@ -230,12 +229,12 @@ class Encoding():
             word = word[1:]
         if word[0].isupper():
             up = 2 if len(word) > 1 and word[1].isupper() else 1
-            word = word.lower()
+        word = word.lower() # lower always to safeguard against errors when splitting before uppercase letters
         escaped = self._escape(word)
         if return_as_tuple:
             return escaped, ws, up
         else:
-            return ws * ASCII_ENCODING_SPACE + up * ASCII_ENCODING_UPPER + escaped
+            return ws * ASCII_ENCODING_SPACE + up * ASCII_RESERVED_UPPER + escaped
         
     def _escape(self, word):
         return self.alphabet_missing_regex.sub(lambda m: _escape_char(m.group(0)), word)

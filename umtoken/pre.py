@@ -25,11 +25,12 @@ SOT_TOKEN = "[SOT]" # start of text token
 EOT_TOKEN = "[EOT]" # end of text token
 MSK_TOKEN = "[MSK]" # mask token
 CLS_TOKEN = "[CLS]" # classification token
-AGG_TOKEN = "[AGG]" # aggregation token
-LUP_TOKEN = "[LUP]" # lookup token
+FEED_TOKEN = "[FEED]" # feed token
+EMIT_TOKEN = "[EMIT]" # emit token
+CUR_TOKEN = "[CUR]" # cursor token
 
 DEFAULT_RESERVED_TOKENS = [PAD_TOKEN, UNK_TOKEN, PRE_TOKEN, SOT_TOKEN, EOT_TOKEN,
-                           MSK_TOKEN, CLS_TOKEN, AGG_TOKEN, LUP_TOKEN]
+                           MSK_TOKEN, CLS_TOKEN, FEED_TOKEN, EMIT_TOKEN, CUR_TOKEN]
 
 _ws_or_control_regex = re.compile(r'\p{Z}(?<! )|\p{Cc}(?<![\t\n])', re.UNICODE)
 _alpha_or_num_regex = re.compile(r'\p{N}|(\p{L}(?<!\p{Lm}))+', re.UNICODE)

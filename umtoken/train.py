@@ -60,15 +60,8 @@ def main(args):
     if args.allow_unconditional_ops:
         print(f"- with unconditional morph ops")
     if args.no_rules:
-        print(f"- without rules")
-    
-    def normalize(word):
-        # see extract.py
-        word = pre.normalize(word)
-        word = word.strip(" ") if len(word) > 1 else word
-        word = word.lower()
-        return word
-    
+        print(f"- without rules")    
+   
     loaded_from_cache = False
     if args.cache_dir:
         key = f"{args.normalization}--{config.alphabet}--{'|'.join(args.input_file)}"
@@ -97,9 +90,9 @@ def main(args):
                 else:
                     raise ValueError("Unsupported input file format.")
                 if not args.input_normalized:
-                    counter = {normalize(w): c for w, c in counter.items()}
+                    counter = {pre.normalize(w): c for w, c in counter.items()}
                 if not args.input_encoded:
-                    counter = {pre.encoding.escape(w): c for w, c in counter.items()}
+                    counter = {pre.encoding.escape(w, return_as_tuple=True)[0]: c for w, c in counter.items()}
                 if not input_lang:
                     words += Counter(counter)
                 else:
@@ -116,8 +109,8 @@ def main(args):
         for eval_file in args.eval_file:
             with open(eval_file, 'r', encoding="utf8") as f:
                 eval_words.extend(f.read().splitlines())
-        eval_words = [normalize(w) for w in eval_words]
-        eval_words = [pre.encoding.escape(w) for w in eval_words]
+        eval_words = [pre.normalize(w) for w in eval_words]
+        eval_words = [pre.encoding.escape(w, return_as_tuple=True)[0] for w in eval_words]
                 
     # train
     model = trainer.train(rules=rules, words=words, words_by_lang=words_by_langs, eval_words=eval_words)

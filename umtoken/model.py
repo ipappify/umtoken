@@ -199,7 +199,7 @@ class Model():
             l = np.exp(l) * count
             m_vocab[vocab_id] += l
             m_rules[rule_id] += l
-        assert np.isfinite(lattice.logits_forward[-1])
+        assert np.isfinite(lattice.logits_forward[-1]), f"{word}: lattice.logits_forward[-1] is not finite"
         return lattice.logits_forward[-1] * count
     
     def add_vocab_loss(self, word, count, langs, losses, force_slow=False):

@@ -4,7 +4,7 @@ import json
 from typing import List, Optional, Tuple, Union
 from warnings import warn
 
-from .alphabet import ASCII_ENCODING_SPACE as SP, ASCII_ENCODING_UPPER as UP
+from .alphabet import ASCII_ENCODING_SPACE as SP, ASCII_RESERVED_UPPER as UP
 from .pre import PreTokenizer
 from .model import Model
 from .utils import cumsum

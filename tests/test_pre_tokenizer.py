@@ -78,9 +78,9 @@ def test_escape():
         ("\n\n", "NN"),
         (" ws", "Gws"),
         ("ρ", "ρ"),
-        ("UNRESERVED", "UUunreserved"),
+        ("UNRESERVED", "YYunreserved"),
         ("RESERVED", "RESERVED"),
-        ("火影", "VE781ABWVE5BDB1W"),
+        ("火影", "UE7U81UABUE5UBDUB1"),
     ]
     pre = PreTokenizer(alphabet=EU24_ALPHABET, normalization="ipt", reserved_tokens=["RESERVED"])
     for example, expected in examples:
@@ -94,7 +94,7 @@ def test_escape_as_tupple():
         (" ws", ("ws", 1, 0)),
         ("UNRESERVED", ("unreserved", 0, 2)),
         ("RESERVED", ("RESERVED", 0, 0)),
-        ("火影", ("VE781ABWVE5BDB1W", 0, 0)),
+        ("火影", ("UE7U81UABUE5UBDUB1", 0, 0)),
     ]
     pre = PreTokenizer(alphabet=EU24_ALPHABET, normalization="ipt", reserved_tokens=["RESERVED"])
     for example, expected in examples:
@@ -132,6 +132,6 @@ def test_split_and_escape_then_unescape_and_join():
 def test_split_and_escape_special():
     pre = PreTokenizer(alphabet=EU24_ALPHABET, normalization="ipt", reserved_tokens=["[RESERVED]"])
     example = "[RESERVED][RESERVED]Resistivity[RESERVED]is [RESERVED]"
-    expected = ["[RESERVED]", "[RESERVED]", "Uresistivity", "[RESERVED]", "is", "G", "[RESERVED]"]
+    expected = ["[RESERVED]", "[RESERVED]", "Yresistivity", "[RESERVED]", "is", "G", "[RESERVED]"]
     words, ranges = pre.split_and_escape(example, return_ranges=True, handle_reserved=True)
     assert words == expected, f"Expected {expected}, got {words}"

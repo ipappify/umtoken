@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 from .alphabet import (EU3_ALPHABET, ASCII_RESERVED_EOW, ASCII_ENCODING_SHY,
                        ASCII_ENCODING_NEWLINE, ASCII_ENCODING_SPACE, ASCII_ENCODING_TAB, 
-                       ASCII_ENCODING_SUTF8, ASCII_ENCODING_EUTF8, ASCII_ENCODING)
+                       ASCII_RESERVED_UTF8, ASCII_ENCODING)
 from .pre import DEFAULT_RESERVED_TOKENS, UNK_TOKEN
 from .model import Model, MIN_LOGIT
 from .rules import MorphRule
@@ -30,14 +30,12 @@ DEFAULT_MARKUP_SEED = sum((["#" * (2**i),
                             "_" * (2**i)] for i in range (0, 4)), [])
 # 21-7E should be covered by the alphabet (uppercase letters are only used as special tokens)
 # we need to add the first byte of multi-byte sequences (1 1 0 x x x x x, 1 1 1 0 x x x x, 1 1 1 1 0 x x x)
-# and the next byte(s) (1 0 x x x x x x) with and without terminal token (ASCII_ENCODING_EUTF8)
-# trainer will remove duplicates already added via DEFAULT_NUMBER_SEED
+# and the next byte(s) (1 0 x x x x x x)
 DEFAULT_UTF8_SEED = (
-    [ASCII_ENCODING_SUTF8 + f"{i+192:02X}" for i in range(2**6)] + # multi-byte start: 110xxxxx = 192
-    [ASCII_ENCODING_SUTF8 + f"{i+224:02X}" for i in range(2**5)] + # multi-byte start: 1110xxxx = 224
-    [ASCII_ENCODING_SUTF8 + f"{i+240:02X}" for i in range(2**4)] + # multi-byte start: 11110xxx = 240
-    [f"{i+128:02X}" for i in range(2**6)] +                        # multi-byte continuation: 10xxxxxx = 128
-    [f"{i+128:02X}" + ASCII_ENCODING_EUTF8 for i in range(2**7)]   # multi-byte end: 10xxxxxx = 128
+    [ASCII_RESERVED_UTF8 + f"{i+192:02X}" for i in range(2**5)] + # multi-byte start: 110xxxxx = 192
+    [ASCII_RESERVED_UTF8 + f"{i+224:02X}" for i in range(2**4)] + # multi-byte start: 1110xxxx = 224
+    [ASCII_RESERVED_UTF8 + f"{i+240:02X}" for i in range(2**3)] + # multi-byte start: 11110xxx = 240
+    [ASCII_RESERVED_UTF8 + f"{i+128:02X}" for i in range(2**6)]   # multi-byte continuation: 10xxxxxx = 128
 )
 
 DEFAULT_ALPHA = 1.0
