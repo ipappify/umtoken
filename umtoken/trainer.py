@@ -18,16 +18,16 @@ from .model import Model, MIN_LOGIT
 from .rules import MorphRule
 from .utils import chunk_list
 
-DEFAULT_NUMBER_SEED = [f"{d:02}" for d in range(0, 100)] + ["000"] # add 00-99, 000
+DEFAULT_NUMBER_SEED = [f"{d:01}" for d in range(0, 10)] + [f"{d:02}" for d in range(0, 100)] + ["000"] # add 0-9, 00-99, 000
 DEFAULT_WS_SEED = sum(([ASCII_ENCODING_SPACE * (2**i), 
                         ASCII_ENCODING_NEWLINE * (2**i), 
-                        ASCII_ENCODING_TAB * (2**i)] for i in range (1, 4)), [])
+                        ASCII_ENCODING_TAB * (2**i)] for i in range (0, 4)), [])
 DEFAULT_MARKUP_SEED = sum((["#" * (2**i), 
                             "=" * (2**i), 
                             "-" * (2**i), 
                             "+" * (2**i), 
                             "*" * (2**i),
-                            "_" * (2**i)] for i in range (1, 4)), [])
+                            "_" * (2**i)] for i in range (0, 4)), [])
 # 21-7E should be covered by the alphabet (uppercase letters are only used as special tokens)
 # we need to add the first byte of multi-byte sequences (1 1 0 x x x x x, 1 1 1 0 x x x x, 1 1 1 1 0 x x x)
 # and the next byte(s) (1 0 x x x x x x) with and without terminal token (ASCII_ENCODING_EUTF8)
@@ -172,17 +172,16 @@ class Trainer():
                           langs=langs,
                           min_base_len=self.config.min_base_len)
             model.reset_logits()
+            
             # EM
             for subit in range(3 if final else 2):
                 nll, m_vocab, m_rules = self.step_E(model, words, lang_by_words)
                 self.step_M(model, m_vocab, m_rules)
-                print(f'  NLL({subit})={nll}')
-            # override seed token logits
-            if self.config.seed_token_logit is not None:
-                for token in self.config.seed_tokens:
-                    model.vocab_logits[model.vocab_lookup[token]] = self.config.seed_token_logit
+                print(f'  NLL({subit})={nll}')           
+                 
             # eval
             self.eval_model(model, eval_words)
+            
             # prune
             if final:
                 # update progress bar properly
@@ -342,6 +341,10 @@ class Trainer():
         model.rearrange_vocab(vocab_order)
         model.vocab_logits[:len(self.config.reserved_tokens)] = 0.0
         model.unk_token_id = model.vocab_lookup[self.config.unk_token]
+        # override seed token logits
+        if self.config.seed_token_logit is not None:
+            for token in self.config.seed_tokens:
+                model.vocab_logits[model.vocab_lookup[token]] = self.config.seed_token_logit
         
     def tie_model(self, model: Model, words: List[Tuple[str, float]], langs_by_words: List[Optional[set]]):
         vocab_langs = tie(model, words, langs_by_words, self.config.workers, self.config.force_slow)
