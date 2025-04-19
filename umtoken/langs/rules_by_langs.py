@@ -5,6 +5,7 @@ from ..rules import MorphRule
 from .utils import DEFAULT_RULES
 from .bg import BG_RULES
 from .cs import CS_RULES
+from .da import DA_RULES
 from .de import DE_RULES
 from .el import EL_RULES
 from .en import EN_RULES
@@ -20,6 +21,7 @@ from .ro import RO_RULES
 RULES_BY_LANGS = {
     "bg": BG_RULES,
     "cs": CS_RULES,
+    "da": DA_RULES,
     "de": DE_RULES,
     "el": EL_RULES,
     "en": EN_RULES,
