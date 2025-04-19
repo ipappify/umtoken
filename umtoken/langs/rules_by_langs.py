@@ -3,7 +3,9 @@ from warnings import warn
 
 from ..rules import MorphRule
 from .utils import DEFAULT_RULES
+from .bg import BG_RULES
 from .cs import CS_RULES
+from .da import DA_RULES
 from .de import DE_RULES
 from .el import EL_RULES
 from .en import EN_RULES
@@ -15,9 +17,12 @@ from .nl import NL_RULES
 from .pl import PL_RULES
 from .pt import PT_RULES
 from .ro import RO_RULES
+from .sv import SV_RULES
 
 RULES_BY_LANGS = {
+    "bg": BG_RULES,
     "cs": CS_RULES,
+    "da": DA_RULES,
     "de": DE_RULES,
     "el": EL_RULES,
     "en": EN_RULES,
@@ -29,6 +34,7 @@ RULES_BY_LANGS = {
     "pl": PL_RULES,
     "pt": PT_RULES,
     "ro": RO_RULES,
+    "sv": SV_RULES,
 }
 
 def get_rules(languages: List[str], 
