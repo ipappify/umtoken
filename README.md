@@ -6,16 +6,33 @@ Text needs to be tokenized before it can be processed by neural language models 
 
 Standard tokenizers such as BPE (Byte Pair Encoding) and WordPiece work well for languages such as English and Chinese that do not have a rich morphology.
 
-However, for many European languages with rich morphology such as Romance languages, Slavic languages, or certain Germanic languages, the number of tokens (subwords) per word can be very high. The subwords are often quite different between inflected forms of the same word and are often not meaningful. Worse, the subwords depend on the case and leading whitespace of the input word.
+However, for many European languages with rich morphology such as Romance languages, Slavic languages, or some Germanic languages, the number of tokens (subwords) per word can be very high. The subwords are often quite different between inflected forms of the same word and are often not meaningful. Worse, the subwords depend on the case and leading whitespace of the input word.
 
-Here is an example from the tokenizer of the GPT-4o model by OpenAI ([try yourself](https://platform.openai.com/tokenizer)):
+Here is an example from the tokenizer of the GPT-4o model by OpenAI ([try yourself](http://tokenizers.ipappify.de/)):
 - The French word "chlorofluorocarbone" is tokenized into the subwords "chlor", "of", "lu", "or", "ocar", "bone" (😕 the chlor of what bone 🦴? lu or ocar?).
 
-Language models that use such tokenizers may have a hard time learning the meaning of words and may not be able to generalize well to unseen words, word forms, or compound words. This is especially true for low-resource languages where the training data is scarce.
+Language models that use such tokenizers may have a hard time learning the meaning of words and may not be able to generalize well to unseen words, word forms, or compound words. This is especially true for low-resource languages where the training data is scarce. 
 
-More tokens per word result in longer sequences which require more memory and computation during training and inference. A common solution to the problem of reducing the number of tokens per word is to use ever larger vocabularies. However, larger vocabularies also require more memory and computation for embedding and projection weights. For example, the [Llama 3.1 8B](https://huggingface.co/meta-llama/Llama-3.1-8B) model uses about 1 billion out of 8 billion parameters just for the embedding and projection layers.
+More tokens per word also result in longer sequences which require more memory and computation during training and inference. The common solution to this problem is to use ever larger vocabularies. However, larger vocabularies also require more memory and computation for embedding and projection weights. For example, the [Llama 3.1 8B](https://huggingface.co/meta-llama/Llama-3.1-8B) model uses about 1 billion out of 8 billion parameters just for the embedding and projection layers.
 
-The basic idea of the umtoken tokenizer is to factorize words into **2-tuples of vocabulary entries and properties**, so that a smaller vocabulary size and fewer tokens per word are needed. The vocabulary entries tend to be more meaningful than the subword units of standard tokenizers like BPE or WordPiece, and thus easier to digest for language models.
+The basic idea of the umtoken tokenizer is to factorize words into **tuples of vocabulary entries and properties**, so that a smaller vocabulary size and fewer tokens per word are needed. The vocabulary entries tend to be more meaningful than the subword units of standard tokenizers like BPE or WordPiece, and thus easier to digest for language models.
+
+This is our motivation. To keep you motivated to read on, here is an comparison between different tokenizer:
+
+![wikipedia (eu8): tokens per word by language](assets/wikipedia_eu8_tokens_per_word_by_lang.png)
+
+The figure shows the tokens per word ratio by the 8 most commonly spoken languages in the EU (eu8) on the huggingface dataset wikimedia/wikipedia, for: 
+- umtoken-eu8_40k--lax (`./assets/wikipedia_eu8_40k_l3--lax.json`, **40k** vocab size, trained on wikimedia/wikipedia, without tying vocab and rules by language)
+- umtoken-eu8_40k--tied (`./assets/wikipedia_eu8_40k_l3--tied.json`, **40k** vocab size, trained on wikimedia/wikipedia, with tying vocab and rules by language)
+- standard BPE (gpt-2, **80k** vocab size, trained on wikimedia/wikipedia)
+- standard BPE (gpt-2, **40k** vocab size, trained on wikimedia/wikipedia)
+- openai (GPT-4o, ~**200k** vocab size)
+
+Token per word ratios are close for English (en), but differ significantly for morphologically richer languages like other Germanic languages (de, nl), Romance languages (es, fr, it, ro), and Slavic languages (pl).
+
+The umtoken tokenizer outperforms standard tokenizers in terms of tokens per word for all languages, even tokenizers with much larger vocabularies: Although trained on the same dataset, the **40k umtoken** tokenizer **outperforms** the **80k BPE** tokenizer with twice the vocabulary size.
+
+Tying vocabulary and rules by language slightly increases the number of tokens per word, but promotes more meaningful tokens by suppressing inappropriate use of morphological rules.
 
 ## Description
 
@@ -23,7 +40,7 @@ The basic idea of the umtoken tokenizer is to factorize words into **2-tuples of
 
 The umtoken tokenizer is a rewrite of our [IP.Translator](https://www.ipappify.de/en/ip-translator) tokenizer, which we have been using for our translation models since 2021. The code has been cleaned up and optimized for readability. Some unnecessary features have been removed, and some (hopefully, all) minor design flaws have been fixed.
 
-Here, is how it works:
+Here, is how it works ([try yourself](http://tokenizers.ipappify.de/)):
 
 ### Level 1
 
@@ -72,17 +89,21 @@ The rules may include morphological operations to transform bases (= vocabulary 
 ### Supported Languages
 
 Rules are currently available for the following languages
+- Bulgarian (bg)
+- Czech (cs)
+- Danish (da)
+- Dutch (nl)
 - English (en)
 - French (fr)
 - German (de)
-- Spanish (es)
+- Greek (el)
+- Hungarian (hu)
 - Italian (it)
-- Dutch (nl)
 - Polish (pl)
+- Portuguese (pt)
 - Romanian (ro)
-
-We aim to add rules for all 24 official EU languages in the near future (support for Irish and Maltese may be limited).
-Next on the list are Portuguese (pt), Hungarian (hu), Greek (el), and Czech (cs).
+- Spanish (es)
+- Swedish (sv)
 
 ### A Note on Feature Engineering
 
@@ -106,25 +127,9 @@ Morphological operations and suffixes are combined into morphological rules (see
 
 ## Comparison
 
-Standard tokenizers like BPE (Byte Pair Encoding) and WordPiece neither consider leading whitespace, case, nor morphological rules as further dimensions of a token. The following figure compares the tokenization of umtoken and BPE/WordPiece tokenizers.
+Standard tokenizers like BPE (Byte Pair Encoding) and WordPiece neither consider leading whitespace, case, nor morphological rules as further dimensions of a token. 
 
-The figure shows the tokens per word ratio by the 8 most commonly spoken languages in the EU (eu8) on the huggingface dataset wikimedia/wikipedia, for: 
-- umtoken-eu8_40k--lax (`./assets/wikipedia_eu8_40k_l3--lax.json`, **40k** vocab size, trained on wikimedia/wikipedia, without tying vocab and rules by language)
-- umtoken-eu8_40k--tied (`./assets/wikipedia_eu8_40k_l3--tied.json`, **40k** vocab size, trained on wikimedia/wikipedia, with tying vocab and rules by language)
-- standard BPE (gpt-2, **80k** vocab size, trained on wikimedia/wikipedia)
-- standard BPE (gpt-2, **40k** vocab size, trained on wikimedia/wikipedia)
-- openai (GPT-4o, ~**200k** vocab size)
-
-![wikipedia (eu8): tokens per word by language](assets/wikipedia_eu8_tokens_per_word_by_lang.png)
-
-Token per word ratios are close for English (en), but differ significantly for morphologically richer languages like other Germanic languages (de, nl), Romance languages (es, fr, it, ro), and Slavic languages (pl).
-
-The umtoken tokenizer outperforms standard tokenizers in terms of tokens per word for all languages, even tokenizers with much larger vocabularies:
-Although trained on the same dataset, the **40k umtoken** tokenizer **outperforms** the **80k BPE** tokenizer with twice the vocabulary size.
-
-Tying vocabulary and rules by language slightly increases the number of tokens per word, but promotes more meaningful tokens by suppressing inappropriate use of morphological rules.
-
-A low ratio of tokens to words does not necessarily make the tokens are more meaningful. The following examples illustrate the differences between umtoken and BPE/WordPiece tokenizers.
+The following examples illustrate the differences between umtoken and common tokenizers.
 
 ### Compound Words
 
@@ -221,7 +226,9 @@ pip transformers
 
 ## Integration
 
-The umtoken tokenizer does not return a scalar token id but tuples of vocab id and property id. Transformer models must be adapted to accept these tuples as input. The following code snippet shows how to adapt the embedding and projection layers in pytorch:
+The umtoken tokenizer does not return a scalar token id but tuples of vocab id and property id. Transformer models must be adapted to accept these tuples as input. The following code snippet shows how to adapt the embedding and projection layers in pytorch.
+
+Note that this examples uses 2-tuples `(vocab_id, property_id)`. When using many rules as for Slavic languages, it may be better to use 3-tuples `(vocab_id, rule_id, ws_case_id)`. This will help the model generalize to unseen combinations.
 
 ```python
 import math
