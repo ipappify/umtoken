@@ -215,7 +215,7 @@ pip transformers
 
 The umtoken tokenizer does not return a scalar token id but tuples of vocab id and property id. Transformer models must be adapted to accept these tuples as input. The following code snippet shows how to adapt the embedding and projection layers in pytorch.
 
-Note that this examples uses 2-tuples `(vocab_id, property_id)`. When using many rules as for Slavic languages, it may be better to use 3-tuples `(vocab_id, rule_id, ws_case_id)`. This will help the model generalize to unseen combinations.
+Note that this examples uses 2-tuples `(vocab_id, property_id)`. When using many rules as for Slavic languages, it may be better to use 3-tuples `(vocab_id, rule_id, ws_id + 2 * up_id)`. This will help the model generalize to unseen combinations.
 
 ```python
 import math
