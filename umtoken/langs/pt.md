@@ -35,7 +35,7 @@ op=RegexOp(r'ol$', r'ói', r'ói$', r'ol')
 ```
 
 ### nouns ending with -ão and plural form -ões
-common: informação-/ nformaç[ão->õ]-es
+common: informação-/ informaç[ão->õ]-es
 ``` python
 op=RegexOp(r'ão$', r'õ', r'õ$', r'ão')
 ```
