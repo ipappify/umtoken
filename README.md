@@ -17,22 +17,20 @@ More tokens per word also result in longer sequences which require more memory a
 
 The basic idea of the umtoken tokenizer is to factorize words into **tuples of vocabulary entries and properties**, so that a smaller vocabulary size and fewer tokens per word are needed. The vocabulary entries tend to be more meaningful than the subword units of standard tokenizers like BPE or WordPiece, and thus easier to digest for language models.
 
-This is our motivation. To keep you motivated to read on, here is an comparison between different tokenizer:
+This is our motivation. To keep you motivated to read on, here is an comparison between the token per word ratios (**lower is better**) for **umtoken (blue)** and **other tokenizers (yellow to red)**:
 
-![wikipedia (eu8): tokens per word by language](assets/wikipedia_eu8_tokens_per_word_by_lang.png)
+![wikipedia (eu15): tokens per word by language](assets/wikipedia_eu15_tokens_per_word_by_lang.png)
 
-The figure shows the tokens per word ratio by the 8 most commonly spoken languages in the EU (eu8) on the huggingface dataset wikimedia/wikipedia, for: 
-- umtoken-eu8_40k--lax (`./assets/wikipedia_eu8_40k_l3--lax.json`, **40k** vocab size, trained on wikimedia/wikipedia, without tying vocab and rules by language)
-- umtoken-eu8_40k--tied (`./assets/wikipedia_eu8_40k_l3--tied.json`, **40k** vocab size, trained on wikimedia/wikipedia, with tying vocab and rules by language)
-- standard BPE (gpt-2, **80k** vocab size, trained on wikimedia/wikipedia)
-- standard BPE (gpt-2, **40k** vocab size, trained on wikimedia/wikipedia)
+The figure shows the tokens per word ratio by the 8 and 15 most commonly spoken languages in the EU (labeled as eu8 and eu15) on the huggingface dataset wikimedia/wikipedia, for: 
+- umtoken-eu8_40k (`./assets/wikipedia_eu8_40k_l3--tied.json`, **40k** vocab size, trained on wikimedia/wikipedia for the eu8 languages)
+- umtoken-eu15_64k (`./assets/wikipedia_eu15_64k_l3--tied.json`, **64k** vocab size, trained on wikimedia/wikipedia for the eu15 languages)
+- standard BPE (gpt-2, **80k** vocab size, trained on wikimedia/wikipedia for the eu8 languages)
+- standard BPE (gpt-2, **40k** vocab size, trained on wikimedia/wikipedia for the eu8 languages)
 - openai (GPT-4o, ~**200k** vocab size)
 
-Token per word ratios are close for English (en), but differ significantly for morphologically richer languages like other Germanic languages (de, nl), Romance languages (es, fr, it, ro), and Slavic languages (pl).
+Token per word ratios are close for English (en) among all tokenizers, but differ significantly for all other languages, especially for morphologically rich languages.
 
 The umtoken tokenizer outperforms standard tokenizers in terms of tokens per word for all languages, even tokenizers with much larger vocabularies: Although trained on the same dataset, the **40k umtoken** tokenizer **outperforms** the **80k BPE** tokenizer with twice the vocabulary size.
-
-Tying vocabulary and rules by language slightly increases the number of tokens per word, but promotes more meaningful tokens by suppressing inappropriate use of morphological rules.
 
 ## Description
 
@@ -113,17 +111,6 @@ When adding a new language, it is enough to define only a few common rules to ac
 
 The current rule set of umtoken already covers many high-resource languages with Latin script.
 Just using these rules will already free up a significant amount of vocabulary space for other languages.
-
-### Terminology
-
-- word (in the broad sense): a sequence of characters of one kind, e.g. "running", but also "100", "####", or "\n\n"
-- word (forms): the inflected form of a word, e.g. "running"
-- stem: the stem of a word form to which an inflectional suffix is attached, e.g. "runn"
-- base: the unchanging part of the stem, e.g. "run"
-
-Bases can be transformed into stems by a reversible morphological operation (see `RegexOp` in `rules.py`), e.g. "run" -\> "ru\[n-\>nn\]".
-Stems can be transformed into words by attaching a suffix, e.g. "runn" -\> "running".
-Morphological operations and suffixes are combined into morphological rules (see `SuffixRule` in `rules.py`), e.g. "run" -\> "ru\[n-\>nn\]+ing".
 
 ## Comparison
 
