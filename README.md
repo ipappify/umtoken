@@ -241,7 +241,7 @@ class TransformerLM(torch.module):
         self.emb_1 = nn.Embedding(props_size, model_dim)
         self.prj_0 = nn.Linear(model_dim, vocab_size)
         self.prj_1 = nn.Linear(model_low, props_size)
-        self.prj_linear = nn.Linear(2 * model_dim, model_low) # Gate Linear Unit (GLU) for autoregressive projection of props
+        self.prj_linear = nn.Linear(2 * model_dim, model_low) # Gated Linear Unit (GLU) for autoregressive projection of props
         self.prj_gate = nn.Linear(2 * model_dim, model_low)
 
         # init weights the usual way
