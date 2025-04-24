@@ -22,8 +22,8 @@ This is our motivation. To keep you motivated to read on, here is an comparison 
 ![wikipedia (eu15): tokens per word by language](assets/wikipedia_eu15_tokens_per_word_by_lang.png)
 
 The figure shows the tokens per word ratio by the 8 and 15 most commonly spoken languages in the EU (labeled as eu8 and eu15) on the huggingface dataset wikimedia/wikipedia, for: 
-- umtoken-eu8_40k (`./assets/wikipedia_eu8_40k_l3--tied.json`, **40k** vocab size, trained on wikimedia/wikipedia for the eu8 languages)
-- umtoken-eu15_64k (`./assets/wikipedia_eu15_64k_l3--tied.json`, **64k** vocab size, trained on wikimedia/wikipedia for the eu15 languages)
+- umtoken-eu8_40k (`umtoken/assets/wikipedia_eu8_40k_l3--tied.json`, **40k** vocab size, trained on wikimedia/wikipedia for the eu8 languages)
+- umtoken-eu15_64k (`umtoken/assets/wikipedia_eu15_64k_l3--tied.json`, **64k** vocab size, trained on wikimedia/wikipedia for the eu15 languages)
 - standard BPE (gpt-2, **80k** vocab size, trained on wikimedia/wikipedia for the eu8 languages)
 - standard BPE (gpt-2, **40k** vocab size, trained on wikimedia/wikipedia for the eu8 languages)
 - openai (GPT-4o, ~**200k** vocab size)
@@ -74,7 +74,7 @@ The rules may include morphological operations to transform bases (= vocabulary 
 
 ### Examples
 
-* umtoken-eu8_40k--tied (`./assets/wikipedia_eu8_40k_l3--tied.json`, **40k** vocab size, trained on wikimedia/wikipedia for en, de, fr, es, it, nl, pl, ro):
+* umtoken-eu8_40k--tied (`umtoken/assets/wikipedia_eu8_40k_l3--tied.json`, **40k** vocab size, trained on wikimedia/wikipedia for en, de, fr, es, it, nl, pl, ro):
 
 | Language | Word                 | Tokens                  | Properties           |
 |----------|----------------------|-------------------------|----------------------|
@@ -103,9 +103,7 @@ Rules are currently available for the following languages
 - Spanish (es)
 - Swedish (sv)
 
-### A Note on Feature Engineering
-
-Feature engineering is often frowned upon in deep learning. However, the effort required to design morphological rules is actually quite manageable:
+The effort required to design morphological rules is quite manageable:
 
 When adding a new language, it is enough to define only a few common rules to achieve a significant reduction in the number of tokens per word. If no rules apply, the word is tokenized into subwords in the usual way.
 
@@ -129,7 +127,7 @@ The following examples illustrate the differences between umtoken and common tok
 
 Tokens from the GPT-4o tokenziner are mostly meaningless, such as tokens "Fl" and "lu", or have a meaning unconncected to chlorofluorocarbon, such as tokens 'ork' or 'bone'.
 
-* umtoken-eu8_40k--tied (`./assets/wikipedia_eu8_40k_l3--tied.json`, **40k** vocab size, trained on wikimedia/wikipedia):
+* umtoken-eu8_40k--tied (`umtoken/assets/wikipedia_eu8_40k_l3--tied.json`, **40k** vocab size, trained on wikimedia/wikipedia):
 
 | Language | Word                          | Tokens                          | Properties          |
 |------|-------------------------------|---------------------------------|---------------------|
@@ -208,8 +206,10 @@ pip install polars datasets pyzstd
 For using the wrapper `UnimorphTokenizer` which makes the umtoken tokenizer available as a huggingface `PreTrainedTokenizerBase`, you need to have huggingface transforms installed:
 
 ```bash
-pip transformers
+pip install transformers
 ```
+
+Under `umtoken/assets` you will find a few pretrained models.
 
 ## Integration
 
@@ -367,10 +367,13 @@ python -m umtoken.extract -i \<input_path\> -c \<column_name\> -o \<output_path\
 
 2. **Parameters**:
 
-* -i: Path to the input file(s). Supports wildcards (e.g., ~/data/super_eurlex/*/*_clean.parquet).
-* -c: Column name(s) in the input file containing the text (e.g., text_cleaned).
-* -o: Path to the output file where the vocabulary will be saved (e.g., ~/data/super_eurlex/{lang}.vocab.json).
-* -l: (optional) Regex pattern to extract language codes from filenames (e.g., .(\\w{2}).\\w+_clean.parquet). First group of regex match will be used as the language code.
+* -i, --input-file: Path to the input file(s). Supports wildcards (e.g., ~/data/super_eurlex/*/*_clean.parquet).
+* -c, --column-name: Column name(s) in the input file containing the text (e.g., text_cleaned).
+* -o, --output-file: Path to the output file where the vocabulary will be saved (e.g., ~/data/super_eurlex/{lang}.vocab.json).
+* -n, --normalization: Unicode normalization to apply to input words. Options: default, ipt, nfc (default: default).
+* -f, --min-frequency: Minimum frequency of a word to be included in the vocabulary.
+* -lr, --lang-regex: Regex pattern to extract language codes from filenames (e.g., .(\w{2}).\w+_clean.parquet). The first group of the regex match will be used as the language code.
+* -lc, --lang-column-name: Column name containing the language in the input file. May be a single column or one column for each column in --column-name.
 
 3. **Example**:
 
@@ -403,16 +406,26 @@ python -m umtoken.train -i \<lang_vocab_pairs\> -c \<cache_dir\> -l \<languages\
 
 2. **Parameters**:
 
-* -i: Language-to-vocabulary file mappings (e.g., en:~/data/super_eurlex/en.vocab.json).
-* -in: Input words are already normalized. Should be selected when words have been extracted with the `extract.py` script.
-* -c: Cache directory for intermediate files (e.g., ~/data/super_eurlex/cache).
-* -l: List of languages to include (e.g., eu3).
-* -v: Vocabulary size (e.g., 24576).
-* -mc: (optional) Minimum word count (e.g., 3).
-* -d: (optional) Exponent for discounting word frequencies (e.g., 0.7).
-* -t: (optional) Tie vocab and rules by languages. Favors more meaningful tokens over fewer tokens per word. 
-* -o: Path to save the trained tokenizer (e.g., eu3_24k_tied.json).
-* for further parameters see `umtoken.train --help`
+* -i, --input-file: Language-to-vocabulary file mappings (e.g., en:~/data/super_eurlex/en.vocab.json).
+* -o, --output-file: Path to save the trained tokenizer (e.g., eu3_24k_tied.json).
+* -c, --cache-dir: Cache directory for intermediate files (e.g., ~/data/super_eurlex/cache).
+* -e, --eval-file: Eval file(s) containing a word in each line (txt).
+* -v, --vocab-size: Vocabulary size (e.g., 24576).
+* -mc, --min-count: Minimum count of a word to be included in the vocabulary (default: 1).
+* -mb, --min-base-len: Minimum length of a base for applying rules (default: 2).
+* -ml, --min-balance-langs: Minimum counts to upsample each language to, relative to the dominant language (default: 0.5).
+* -rp, --rule-penalty: Penalty for non-default rules (default: -0.4).
+* -d, --discount-exponent: Exponent for discounting word frequencies (default: 1.0).
+* -l, --languages: List of languages to include (e.g., eu3).
+* -t, --tie: Tie vocab and rules by languages.
+* -n, --normalization: Unicode normalization to apply to input words. Options: default, ipt, nfc (default: default).
+* --no-rules: Use only necessary default rules.
+* --no-constraints: Do not apply constraints to rules.
+* --no-penalties: Do not apply penalties to rules.
+* --no-ops: Do not apply rules with morphological operations.
+* --allow-unconditional-ops: Allow rules with unconditional morphological operations.
+* -w, --workers: Number of workers; 0 = as many as CPUs (default: 0).
+* -its, --iterations: Number of iterations (default: 10).
 
 3. **Example**:
 
@@ -460,10 +473,13 @@ python -m umtoken.eval -i \<lang_vocab_pairs\> -t \<tokenizer_path\> -o \<output
 
 2. **Parameters**:
 
-* -i: Language-to-vocabulary file mappings (e.g., en:~/data/super_eurlex/en.vocab.json).
-* -t: Path to the trained tokenizer (e.g., ~/data/super_eurlex/tokenizers/eu3_24k_tied.json).
-* -o: Path to save the evaluation results (e.g., ~/data/super_eurlex/eval/eu3_24k_tied.json).
-* for further parameters see `umtoken.eval --help`
+* -i, --input-file: Language-to-vocabulary file mappings (e.g., en:~/data/super_eurlex/en.vocab.json).
+* -t, --tokenizer-file: Path to the trained tokenizer (e.g., ~/data/super_eurlex/tokenizers/eu3_24k_tied.json).
+* -o, --output-file: Path to save the evaluation results (e.g., ~/data/super_eurlex/eval/eu3_24k_tied.json).
+* -ot, --output-tokenized-file: Output file to save the tokenized words (jsonl).
+* -of, --output-formatted-file: Output file to save the formatted tokenized words (txt).
+* -w, --workers: Number of workers; 0 = as many as CPUs (default: 0).
+* -c, --check: Check whether tokenization is reversible.
 
 3. **Example**:
 
