@@ -78,10 +78,6 @@ The rules may include morphological operations to transform bases (= vocabulary 
 | "running" | run | r"([bdfgklmnprst])$" -> "\1\1" | +ing | "ru\[n-\>nn\]+ing" |
 | "animais" | animal | r"l$" -> "i" | +s | "anima[l-\>i\]+s" |
 
-### Next Levels
-
-* Remove / restore diacritics (e.g., "á" \> "a" or "a" \> "á").
-
 ### Examples
 
 * umtoken-eu8_40k--tied (`umtoken/assets/wikipedia_eu8_40k_l3--tied.json`, **40k** vocab size, trained on wikimedia/wikipedia for en, de, fr, es, it, nl, pl, ro):
