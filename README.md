@@ -70,7 +70,17 @@ Returning to the example of the word "system", we can now add a rule for the plu
 
 ### Level 3 (optional)
 
-The rules may include morphological operations to transform bases (= vocabulary entries) into stems before the suffix is appended  (e.g., "run" \> "ru\[n-\>nn\]+ing").
+The rules may include morphological operations to transform bases (= vocabulary entries) into stems before the suffix is appended:
+
+| Word | Base | Regex Op | Suffix Rule | (De-)composition |
+|-------|-------|------|--------|------|
+| "studied" | study | r"y$" -> "i" | +ed | "stud\[y-\>i\]+ed" |
+| "running" | run | r"([bdfgklmnprst])$" -> "\1\1" | +ing | "ru\[n-\>nn\]+ing" |
+| "animais" | animal | r"l$" -> "i" | +s | "anima[l-\>i\]+s" |
+
+### Next Levels
+
+* Remove / restore diacritics (e.g., "á" \> "a" or "a" \> "á").
 
 ### Examples
 
