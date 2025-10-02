@@ -18,7 +18,7 @@ from .model import Model, MIN_LOGIT
 from .rules import MorphRule
 from .utils import chunk_list
 
-DEFAULT_NUMBER_SEED = [f"{d:01}" for d in range(0, 10)] + [f"{d:02}" for d in range(0, 100)] + ["000"] # add 0-9, 00-99, 000
+DEFAULT_NUMBER_SEED = [f"{d:01}" for d in range(0, 10)] + [f"{d:02}" for d in range(0, 100)] # add 0-9, 00-99
 DEFAULT_WS_SEED = sum(([ASCII_ENCODING_SPACE * (2**i), 
                         ASCII_ENCODING_NEWLINE * (2**i), 
                         ASCII_ENCODING_TAB * (2**i)] for i in range (0, 4)), [])
@@ -61,6 +61,7 @@ class TrainerConfig():
                  beta: float = DEFAULT_BETA,
                  min_base_len: int = 2,
                  tie_by_langs: bool = False,
+                 number_handling: str = "greedy-head",
                  min_balance_langs: Optional[float] = None,
                  workers: int = 0,
                  force_slow: bool = False
@@ -86,6 +87,7 @@ class TrainerConfig():
             beta: Rule logits are multiplied with beta (default: DEFAULT_BETA).
             min_base_len: Minimum length of a base (default: 2).
             tie_by_langs: Whether to tie vocab and rules by langs.
+            number_handling: The number handling strategy (default: "greedy-head").
             min_balance_langs: Lower bound for balance among languages (default: None). 
                                If the sum of word counts for a language is less than 
                                this value times the sum of word counts over the dominant language, 
@@ -115,6 +117,7 @@ class TrainerConfig():
         self.beta = beta
         self.min_base_len = min_base_len
         self.tie_by_langs = tie_by_langs
+        self.number_handling = number_handling
         self.min_balance_langs = min_balance_langs
         self.workers = workers if workers > 0 else os.cpu_count()
         self.force_slow = force_slow
@@ -168,7 +171,8 @@ class Trainer():
                           [0.0] * len(rules),
                           self.config.alpha, self.config.beta,
                           langs=langs,
-                          min_base_len=self.config.min_base_len)
+                          min_base_len=self.config.min_base_len,
+                          number_handling=self.config.number_handling)
             model.reset_logits()
             
             # EM
