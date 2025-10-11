@@ -224,7 +224,7 @@ class Trainer():
             words_by_lang: The words by language.
             
         Returns:
-            A tuple of he prepared words and their languages.
+            A tuple of the prepared words and their languages.
         """
         eow = ASCII_RESERVED_EOW
         shy = ASCII_ENCODING_SHY
