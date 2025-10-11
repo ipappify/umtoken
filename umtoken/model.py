@@ -37,6 +37,7 @@ class Model():
                  beta: float,
                  unk_token_id: int = 0,
                  min_base_len: int = 2,
+                 number_handling: Optional[str] = None,
                  prebuild_stem_trie: bool = False,
                  langs: Optional[List[str]] = None,
                  vocab_langs: Optional[List[int]] = None
@@ -53,11 +54,13 @@ class Model():
             beta: The rules weight.
             unk_token_id: The unknown token id.
             min_base_len: The minimum base length.
+            number_handling: The number handling strategy (None, "greedy-head", "greedy-tail").
             prebuild_stem_trie: Whether to prebuild the stem trie.
             langs: The languages.
             vocab_langs: The vocabulary languages.
         """
         assert not vocab_langs or langs, "vocab_langs requires langs"
+        assert number_handling in (None, "greedy-head", "greedy-tail"), "number_handling must be None, 'greedy-head' or 'greedy-tail'"
         self.vocab = list(vocab)
         self.rules = list(rules)
         self.langs = list(langs) if langs else list(sorted(set(l for r in rules for l in r.langs or [] if l)))
@@ -65,6 +68,7 @@ class Model():
         self.beta = beta
         self.unk_token_id = unk_token_id
         self.min_base_len = min_base_len
+        self.number_handling = number_handling
         self.vocab_logits = np.array(vocab_logits, dtype=np.float32) if isinstance(vocab_logits, list) else vocab_logits 
         self.rules_logits = np.array(rules_logits, dtype=np.float32) if isinstance(rules_logits, list) else rules_logits
 
@@ -152,6 +156,9 @@ class Model():
                 word = word[:-1]
             else:
                 word = word + EOW
+        if word.rstrip(EOW).isdigit() and self.number_handling is not None:
+            return self.encode_number(word)
+                
         lattice = self.build_lattice(word, langs, force_slow=force_slow)
         path = lattice.viterbi() # [(i, j, logit, data), ...]
         if path is None:
@@ -280,6 +287,56 @@ class Model():
         md5 = hashlib.md5(key.encode("utf-8")).digest()
         return b64encode(md5[:6]).decode("utf-8")
     
+    def encode_number(self, word: str) -> List[Tuple[int, int]]:
+        """
+        Encode a number word based on the number handling strategy.
+        
+        Args:
+            word: The number word to encode.
+            
+        Returns:
+            The list of vocab and rule ids.
+        """
+        eow = word.endswith(EOW)
+        if eow:
+            word = word[:-1]
+        
+        if self.number_handling == "greedy-head":
+            # repeatedly, find longest prefix in vocab until all characters are consumed
+            tokens = []
+            while word:
+                for i in range(len(word), 0, -1):
+                    prefix = word[:i]
+                    if prefix in self.vocab_lookup:
+                        tokens.append((self.vocab_lookup[prefix], 0))
+                        word = word[i:]
+                        break
+                else:
+                    tokens.append((self.unk_token_id, 0))
+                    break
+            if eow:
+                tokens[-1] = (tokens[-1][0], 1) # ensure last token has rule_id 1 (eow)
+            return tokens
+        elif self.number_handling == "greedy-tail":
+            # repeatedly, find longest suffix in vocab until all characters are consumed
+            tokens = []
+            while word:
+                for i in range(len(word), 0, -1):
+                    suffix = word[-i:]
+                    if suffix in self.vocab_lookup:
+                        tokens.append((self.vocab_lookup[suffix], 0))
+                        word = word[:-i]
+                        break
+                else:
+                    tokens.append((self.unk_token_id, 0))
+                    break
+            tokens.reverse()
+            if eow:
+                tokens[-1] = (tokens[-1][0], 1) # ensure last token has rule_id 1 (eow)
+            return tokens
+        else:
+            raise ValueError("number_handling must be 'greedy-head' or 'greedy-tail'")
+    
     def save_dict(self) -> dict:
         return {
             'langs': list(self.langs),
@@ -289,6 +346,7 @@ class Model():
             'beta': self.beta,
             'unk_token_id': self.unk_token_id,
             'min_base_len': self.min_base_len,
+            'number_handling': self.number_handling,
             'vocab_logits': self.vocab_logits.tolist(),
             'vocab_langs': self.vocab_langs.tolist() if self.vocab_langs is not None else None,
             'rules_logits': self.rules_logits.tolist()
@@ -302,6 +360,7 @@ class Model():
                      beta=data['beta'],
                      unk_token_id=data['unk_token_id'],
                      min_base_len=data['min_base_len'],
+                     number_handling=data.get('number_handling'),
                      vocab_logits=data['vocab_logits'],
                      rules_logits=data['rules_logits'],
                      langs=data.get('langs'),

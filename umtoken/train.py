@@ -93,6 +93,7 @@ def main(args):
                     counter = {pre.normalize(w): c for w, c in counter.items()}
                 if not args.input_encoded:
                     counter = {pre.encoding.escape(w, return_as_tuple=True)[0]: c for w, c in counter.items()}
+                counter = {w: c for w, c in counter.items() if len(w) > 1} # filter single char words (after escaping)
                 if not input_lang:
                     words += Counter(counter)
                 else:
