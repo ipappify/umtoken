@@ -42,7 +42,7 @@ class PreTokenizer:
                  normalization: Optional[Literal["default", "ipt", "nfc"]] = "default",
                  split_regex=SPLIT_REGEX,
                  reserved_tokens: List[str] = DEFAULT_RESERVED_TOKENS,
-                 preserve_soft_hyphen: bool = False,
+                 preserve_soft_hyphen: Union[bool, str] = False,
                  preserve_format_and_diactritic: bool = False):
         """
         Pre-tokenizer that pre-splits and optionally encodes (escapes) the text.
@@ -58,7 +58,10 @@ class PreTokenizer:
                            None: do not normalize the text
             split_regex: The regex to pre-split the text. Only the first matched group (group 1) is returned.
             reserved_tokens: The list of reserved tokens (words) which should not be split and escaped.
-            preserve_soft_hyphen: Whether to preserve the soft hyphen character (U+00AD) before splitting.
+            preserve_soft_hyphen: Whether to preserve the soft hyphen character (U+00AD).
+                                  False or 'remove': remove soft hyphen
+                                  True or 'preserve': preserve soft hyphen as isolated character and escape it
+                                  'append': preserve soft hyphen and append it to the preceding word if any (otherwise preserve as isolated character)
             preserve_format_and_diactritic: Whether to preserve format characters (Cf) and uncombined diacritics (M) before splitting.
             
         Remarks:
@@ -75,6 +78,12 @@ class PreTokenizer:
         
         assert alphabet is None or encoding is None, "alphabet and encoding must not be provided simultaneously"
         assert normalization is None or normalization in ["default", "ipt", "nfc"], "normalization must be None, 'ipt', or 'nfc'"
+        assert preserve_soft_hyphen in [False, True, 'remove', 'preserve', 'append'], "preserve_soft_hyphen must be a boolean or one of 'remove', 'preserve', 'append'"
+        
+        if preserve_soft_hyphen == False:
+            preserve_soft_hyphen = 'remove'
+        elif preserve_soft_hyphen == True:
+            preserve_soft_hyphen = 'preserve'            
         
         self.encoding = encoding or (Encoding(alphabet) if alphabet is not None else None)
         self.normalization = normalization
@@ -85,12 +94,12 @@ class PreTokenizer:
         self.preserve_format_and_diactritic = preserve_format_and_diactritic
         
         if not preserve_format_and_diactritic:
-            if not preserve_soft_hyphen:
+            if preserve_soft_hyphen == 'remove':
                 self._clean_regex = re.compile(r'\p{Cf}|\p{M}', re.UNICODE)
             else:
                 self._clean_regex = re.compile(r'\p{Cf}(?<!\u00AD)|\p{M}', re.UNICODE)
         else:
-            if not preserve_soft_hyphen:
+            if preserve_soft_hyphen == 'remove':
                 self._clean_regex = re.compile(r'\u00AD', re.UNICODE)
             else:
                 self._clean_regex = None            
@@ -125,9 +134,19 @@ class PreTokenizer:
                         words.extend(self.split(part))
                 else:
                     words.append(part)
-            return words
         else:
-            return list(m.group(1) for m in self.split_regex.finditer(text))
+            words = list(m.group(1) for m in self.split_regex.finditer(text))
+            
+        if self.preserve_soft_hyphen == 'append' and any(w == "\u00AD" for w in words):
+            # append soft hyphen to preceding word if any
+            new_words = []
+            for i, w in enumerate(words):
+                if w == "\u00AD" and i > 0 and not words[i-1].endswith("\u00AD"):
+                    new_words[-1] += w
+                else:
+                    new_words.append(w)
+            words = new_words
+        return words
         
     def normalize(self, text: str) -> str:
         if self.normalization in ["default", "ipt", "nfc"]:
@@ -194,7 +213,7 @@ class PreTokenizer:
             If return_ranges is False, the list of escaped words.
             If return_ranges is True, the list of escaped words and the list of ranges of the original words in the text.
         """
-        if not self.preserve_soft_hyphen:
+        if self.preserve_soft_hyphen == 'remove':
             text = text.replace("\u00AD", "")
         
         words = self.split(text, handle_reserved, allowed_reserved)
@@ -263,12 +282,12 @@ class PreTokenizer:
         }
     
     @staticmethod
-    def load_dict(d: dict):
+    def load_dict(d: dict, **kwargs):
         return PreTokenizer(
-            alphabet=d.get("alphabet"),
-            normalization=d.get("normalization"),
-            split_regex=d.get("split_regex"),
-            reserved_tokens=d.get("reserved_tokens"),
-            preserve_soft_hyphen=d.get("preserve_soft_hyphen")
+            alphabet=kwargs.get("alphabet", d.get("alphabet")),
+            normalization=kwargs.get("normalization", d.get("normalization")),
+            split_regex=kwargs.get("split_regex", d.get("split_regex")),
+            reserved_tokens=kwargs.get("reserved_tokens", d.get("reserved_tokens")),
+            preserve_soft_hyphen=kwargs.get("preserve_soft_hyphen", d.get("preserve_soft_hyphen")),
         )
         
