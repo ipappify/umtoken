@@ -15,6 +15,9 @@ from .langs import get_rules
 from .tokenizer import Tokenizer
 from .utils import expand_languages
 
+def replace_continue_char(w, cc):
+    return w.replace(cc, "\u00AD") if len(w) > 1 else w
+
 def main(args):
     assert len(args.input_file) > 0, "No input files specified."
     assert len(args.languages) > 0, "No languages specified."
@@ -40,6 +43,7 @@ def main(args):
     trainer = Trainer(config)
     pre = PreTokenizer(alphabet=config.alphabet, 
                        reserved_tokens=config.reserved_tokens, 
+                       preserve_soft_hyphen=True,
                        normalization=args.normalization)
     rules = get_rules(languages if not args.no_rules else [], 
                       drop_constraints=args.no_constraints, 
@@ -89,6 +93,8 @@ def main(args):
                     counter= json.load(f)
                 else:
                     raise ValueError("Unsupported input file format.")
+                if args.continue_char:
+                    counter = {replace_continue_char(w, args.continue_char): c for w, c in counter.items()}
                 if not args.input_normalized:
                     counter = {pre.normalize(w): c for w, c in counter.items()}
                 if not args.input_encoded:
@@ -120,8 +126,7 @@ def main(args):
     thumbprint = model.thumbprint()
     tokenizer = Tokenizer(pre, model, thumbprint=thumbprint)
     os.makedirs(os.path.dirname(args.output_file), exist_ok=True)
-    tokenizer.save(args.output_file)    
-
+    tokenizer.save(args.output_file) 
 
 if __name__ == '__main__':
 
@@ -156,6 +161,9 @@ if __name__ == '__main__':
     parser.add_argument("-ie", "--input-encoded", 
                         action="store_true",
                         help="input words are already encoded (default: False)")
+    
+    parser.add_argument("-cc", "--continue-char",
+                        help="character used to indicate that a word continues (e.g. hyphen), will be replaced with U+00AD (soft hyphen) (default: None)")
     
     parser.add_argument("-mc", "--min-count",
                         default=1,

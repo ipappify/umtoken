@@ -205,9 +205,9 @@ class Tokenizer():
         }
     
     @staticmethod
-    def load_dict(d: dict):
-        pre = PreTokenizer.load_dict(d["pre"])
-        model = Model.load_dict(d["model"])
+    def load_dict(d: dict, **kwargs):
+        pre = PreTokenizer.load_dict(d["pre"], **kwargs.get("pre", {}))
+        model = Model.load_dict(d["model"], **kwargs.get("model", {}))
         thumbprint = d.get("thumbprint")
         return Tokenizer(pre, model, thumbprint)
     
@@ -223,7 +223,7 @@ class Tokenizer():
             json.dump(d, f, ensure_ascii=False, indent=None)
 
     @staticmethod
-    def load(path: str):
+    def load(path: str, **kwargs):
         """
         Loads a tokenizer from a json file.
         
@@ -235,4 +235,4 @@ class Tokenizer():
         """
         with open(path, 'r', encoding="utf8") as f:
             d = json.load(f)
-        return Tokenizer.load_dict(d)
+        return Tokenizer.load_dict(d, **kwargs)

@@ -37,10 +37,13 @@ def process_single(words: List[Tuple[str, int]],
         token_count += len(token_ids) * count
     return word_count, token_count, ids_by_words
 
+def replace_continue_char(w, cc):
+    return w.replace(cc, "\u00AD") if len(w) > 1 else w
+
 def main(args):
     assert len(args.input_file) > 0, "No input files specified."
 
-    tokenizer = Tokenizer.load(args.tokenizer_file)
+    tokenizer = Tokenizer.load(args.tokenizer_file, pre={"preserve_soft_hyphen": "append" if args.continue_char else None})
     need_ids = args.output_tokenized_file or args.output_formatted_file
     workers = args.workers
     if workers <= 0:
@@ -48,6 +51,7 @@ def main(args):
 
     # read words or word counts from input files
     ids_by_words = {}
+    ids_by_words_by_langs = {}
     words_by_langs = Counter()
     tokens_by_langs = Counter()
     for input_file in args.input_file:
@@ -65,6 +69,9 @@ def main(args):
             else:
                 raise ValueError("Unsupported input file format.")
             
+            if args.continue_char:
+                counter = {replace_continue_char(w, args.continue_char): c for w, c in counter.items()}
+
             if workers == 1:
                 results = [process_single(counter.items(), tokenizer, need_ids, 
                                           args.check, True, f"Processing {input_file}")]
@@ -80,8 +87,9 @@ def main(args):
             for word_count, token_count, ids in results:
                 words_by_langs[input_lang] += word_count
                 tokens_by_langs[input_lang] += token_count
+                ids_by_words_by_langs.setdefault(input_lang, {}).update(ids)
                 ids_by_words.update(ids)
-            
+
             # for word, count in tqdm(counter.items(), desc=f"Processing {input_file}"):
             #     token_ids = tokenizer.tokenize(word, merge_aux_ids=False)
             #     if need_ids:
@@ -116,10 +124,12 @@ def main(args):
     if args.output_formatted_file:
         os.makedirs(os.path.dirname(args.output_formatted_file), exist_ok=True)
         with open(args.output_formatted_file, 'w', encoding="utf8") as f:
-            for word, token_ids in ids_by_words.items():
-                f.write(format(token_ids, tokenizer.model.morpher))
-                f.write('\n')
-        
+            for lang in ids_by_words_by_langs.keys():
+                f.write(f"# Language: {lang}\n")
+                for word, token_ids in ids_by_words_by_langs[lang].items():
+                    f.write(format(token_ids, tokenizer.model.morpher))
+                    f.write('\n')
+
 
 if __name__ == '__main__':
 
@@ -144,6 +154,9 @@ if __name__ == '__main__':
     parser.add_argument("-t", "--tokenizer-file",
                         required=True,
                         help="tokenizer file to evaluate (json)")
+    
+    parser.add_argument("-cc", "--continue-char",
+                        help="character used to indicate that a word continues (e.g. hyphen), will be replaced with U+00AD (soft hyphen) (default: None)")
     
     parser.add_argument("-w", "--workers",
                         default=0,

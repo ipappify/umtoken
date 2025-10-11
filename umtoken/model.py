@@ -152,10 +152,14 @@ class Model():
             The list of vocab and rule ids.
         """
         if not eow_applied:
-            if word.endswith(SHY):
+            if word.endswith(SHY) and len(word) > 1:
                 word = word[:-1]
             else:
                 word = word + EOW
+                
+        if len(word) < 1:
+            return []
+                
         if word.rstrip(EOW).isdigit() and self.number_handling is not None:
             return self.encode_number(word)
                 
@@ -353,15 +357,15 @@ class Model():
         }
     
     @staticmethod
-    def load_dict(data: dict):
-        return Model(vocab=data['vocab'],
-                     rules=[MorphRule.load_dict(r) for r in data['rules']],
-                     alpha=data['alpha'],
-                     beta=data['beta'],
-                     unk_token_id=data['unk_token_id'],
-                     min_base_len=data['min_base_len'],
-                     number_handling=data.get('number_handling'),
-                     vocab_logits=data['vocab_logits'],
-                     rules_logits=data['rules_logits'],
-                     langs=data.get('langs'),
-                     vocab_langs=data.get('vocab_langs'))
+    def load_dict(data: dict, **kwargs):
+        return Model(vocab=kwargs.get('vocab', data['vocab']),
+                     rules=[MorphRule.load_dict(r) for r in kwargs.get('rules', data['rules'])],
+                     alpha=kwargs.get('alpha', data['alpha']),
+                     beta=kwargs.get('beta', data['beta']),
+                     unk_token_id=kwargs.get('unk_token_id', data['unk_token_id']),
+                     min_base_len=kwargs.get('min_base_len', data['min_base_len']),
+                     number_handling=kwargs.get('number_handling', data.get('number_handling')),
+                     vocab_logits=kwargs.get('vocab_logits', data['vocab_logits']),
+                     rules_logits=kwargs.get('rules_logits', data['rules_logits']),
+                     langs=kwargs.get('langs', data.get('langs')),
+                     vocab_langs=kwargs.get('vocab_langs', data.get('vocab_langs')))
