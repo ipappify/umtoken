@@ -23,11 +23,17 @@ DEFAULT_WS_SEED = sum(([ASCII_ENCODING_SPACE * (2**i),
                         ASCII_ENCODING_NEWLINE * (2**i), 
                         ASCII_ENCODING_TAB * (2**i)] for i in range (0, 4)), [])
 DEFAULT_MARKUP_SEED = sum((["#" * (2**i), 
-                            "=" * (2**i), 
-                            "-" * (2**i), 
-                            "+" * (2**i), 
+                            "=" * (2**i),
+                            "-" * (2**i),
+                            "+" * (2**i),
+                            "/" * (2**i),
+                            "\\" * (2**i),
                             "*" * (2**i),
-                            "_" * (2**i)] for i in range (0, 4)), [])
+                            "~" * (2**i),
+                            "_" * (2**i)] for i in range (0, 3)), []) + [
+                                "<sup>", "</sup>", "<sub>", "</sub>", "<u>", "</u>",
+                                "{==", "==}", "{++", "++}", "{--", "--}",
+                            ]
 # 21-7E should be covered by the alphabet (uppercase letters are only used as special tokens)
 # we need to add the first byte of multi-byte sequences (1 1 0 x x x x x, 1 1 1 0 x x x x, 1 1 1 1 0 x x x)
 # and the next byte(s) (1 0 x x x x x x)

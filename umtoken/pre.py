@@ -14,23 +14,23 @@ from .utils import cumsum
 # 4. (Japanese/Chinese character sequences - removed to focus on European languages)
 # 5. match sequence of digits ("123")
 # 6. match (repeated) whitespace character - this may be useful for indentation in code or markdown
-# 7. match any (repeated) character that is not a letter, digit, or whitespace
+# 7. match sub/superscript/underline HTML tags as a single unit ("<sub>", "</sub>", "<sup>", "</sup>", "<u>", "</u>")
+# 8. match CriticMarkup-style brackets as a single unit ("{==", "==}", "{++", "++}", "{--", "--}")
+# 9. match any (repeated) character that is not a letter, digit, or whitespace
 # wherein a single blank is merged to any succeeding match that is not a whitespace
-SPLIT_REGEX = r'( ?(?:[\p{Ll}\p{Lo}\p{Lm}]+|(?:\p{Lu}\p{Ll}|\p{Lt})[\p{Ll}\p{Lo}\p{Lm}]*|\p{Lu}\p{Lu}[\p{Lu}\p{Lo}\p{Lm}]*(?!\p{Ll})|\d+|(?<! )(\s)\2*|(.)\3*))'
+SPLIT_REGEX = r'( ?(?:[\p{Ll}\p{Lo}\p{Lm}]+|(?:\p{Lu}\p{Ll}|\p{Lt})[\p{Ll}\p{Lo}\p{Lm}]*|\p{Lu}\p{Lu}[\p{Lu}\p{Lo}\p{Lm}]*(?!\p{Ll})|\d+|(?<! )(\s)\2*|</?(?:su[bp]|u)>|\{(?:==|\+\+|--)|(?:==|\+\+|--)\}|(.)\3*))'
 
 PAD_TOKEN = "[PAD]" # padding token
 UNK_TOKEN = "[UNK]" # unknown token (should never happen because we escape all text - also used if something goes wrong in model.encode)
-PRE_TOKEN = "[PRE]" # preambel token (e.g. for language or role identification: [PRE]assistant[SOT]<...>[EOT])
 SOT_TOKEN = "[SOT]" # start of text token
 EOT_TOKEN = "[EOT]" # end of text token
 MSK_TOKEN = "[MSK]" # mask token
 CLS_TOKEN = "[CLS]" # classification token
-FEED_TOKEN = "[FEED]" # feed token
-EMIT_TOKEN = "[EMIT]" # emit token
-CUR_TOKEN = "[CUR]" # cursor token
+RSV_TOKEN = "[RSV{i:03d}]" # reserved tokens
 
-DEFAULT_RESERVED_TOKENS = [PAD_TOKEN, UNK_TOKEN, PRE_TOKEN, SOT_TOKEN, EOT_TOKEN,
-                           MSK_TOKEN, CLS_TOKEN, FEED_TOKEN, EMIT_TOKEN, CUR_TOKEN]
+
+DEFAULT_RESERVED_TOKENS = ([PAD_TOKEN, UNK_TOKEN, SOT_TOKEN, EOT_TOKEN, MSK_TOKEN, CLS_TOKEN] + 
+                           [f"{RSV_TOKEN.format(i=i)}" for i in range(26)])
 
 _ws_or_control_regex = re.compile(r'\p{Z}(?<! )|\p{Cc}(?<![\t\n])', re.UNICODE)
 _alpha_or_num_regex = re.compile(r'\p{N}|(\p{L}(?<!\p{Lm}))+', re.UNICODE)
