@@ -63,6 +63,8 @@ class Model():
         assert number_handling in (None, "greedy-head", "greedy-tail"), "number_handling must be None, 'greedy-head' or 'greedy-tail'"
         self.vocab = list(vocab)
         self.rules = list(rules)
+        # rules don't change after init; cache penalties for build_lattice's inner loop
+        self._rule_penalties = [r.penalty for r in self.rules]
         self.langs = list(langs) if langs else list(sorted(set(l for r in rules for l in r.langs or [] if l)))
         self.alpha = alpha
         self.beta = beta
@@ -260,12 +262,11 @@ class Model():
             self._rl_scaled = (self.rules_logits * self.beta).tolist()
         vl = self._vl_scaled
         rl = self._rl_scaled
-        rules = self.rules
+        rp = self._rule_penalties
         lattice = Lattice(len(word)+1)
+        add_edge = lattice.add_edge
         for vocab_id, rule_id, i, j in self.morpher.decompose(word, langs, force_slow=force_slow):
-            logit = vl[vocab_id] + rl[rule_id]
-            penalty = rules[rule_id].penalty
-            lattice.add_edge(i, j, logit - penalty - i * SHIFT, (vocab_id, rule_id))
+            add_edge(i, j, vl[vocab_id] + rl[rule_id] - rp[rule_id] - i * SHIFT, (vocab_id, rule_id))
         return lattice
     
     def rearrange_vocab(self, order):
