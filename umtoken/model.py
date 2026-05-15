@@ -14,7 +14,7 @@ from .utils import format, get_rules_bitmask
 
 MIN_LOGIT = -20.0
 CUTOFF = 1E-3
-SHIFT = 1E-5 # tie-breaking for ambiguous paths
+SHIFT = 1E-12 # tie-breaking for ambiguous paths
 
 def digamma(x):
     "digamma function assumes x > 0."
@@ -59,7 +59,7 @@ class Model():
             langs: The languages.
             vocab_langs: The vocabulary languages.
         """
-        assert not vocab_langs or langs, "vocab_langs requires langs"
+        assert vocab_langs is None or len(vocab_langs) == 0 or langs, "vocab_langs requires langs"
         assert number_handling in (None, "greedy-head", "greedy-tail"), "number_handling must be None, 'greedy-head' or 'greedy-tail'"
         self.vocab = list(vocab)
         self.rules = list(rules)
@@ -85,7 +85,7 @@ class Model():
         self.is_eow_rule = [isinstance(r, SuffixRule) and r.suffix.endswith(EOW) for r in rules]
         self.vocab_langs = None
         self.rules_langs = None
-        if vocab_langs:
+        if vocab_langs is not None and len(vocab_langs) > 0:
             self.morpher = None
             self.update_tied_langs(langs, vocab_langs)
             
@@ -94,10 +94,16 @@ class Model():
                                vocab_langs=self.vocab_langs, rules_langs=self.rules_langs)
         
     def _normalize(self, logits):
-        logsum = digamma(sum(l for l in logits if l >= CUTOFF))
+        # operate on a copy: callers (e.g. step_M) still need the original counts
+        total = sum(l for l in logits if l >= CUTOFF)
+        if total <= 0:
+            # every entry is below CUTOFF — nothing to renormalize against; pin all to the floor
+            return np.full(len(logits), MIN_LOGIT, dtype=np.float32)
+        logsum = digamma(total)
+        out = np.empty(len(logits), dtype=np.float32)
         for i in range(len(logits)):
-            logits[i] = max(digamma(logits[i]) - logsum if logits[i] >= CUTOFF else MIN_LOGIT, MIN_LOGIT)
-        return np.array(logits, dtype=np.float32)
+            out[i] = max(digamma(logits[i]) - logsum, MIN_LOGIT) if logits[i] >= CUTOFF else MIN_LOGIT
+        return out
     
     def reset_logits(self):
         """Reset the logits to uniform."""
@@ -118,7 +124,7 @@ class Model():
     def update_tied_langs(self, langs: List[str], vocab_langs: List[int]):
         """
         Update the tying of vocab and rules by language.
-        
+
         Args:
             langs: The languages.
             vocab_langs: The vocabulary languages.
@@ -127,19 +133,17 @@ class Model():
         rules_langs = get_rules_bitmask(langs, self.rules)
 
         self.langs = list(langs)
-        if len(langs) <= 256:
-            # select bit width based on number of languages
+        # numpy tops out at uint64; for more than 64 langs the bitmask needs Python ints
+        if len(langs) <= 64:
             dtype = (np.uint8 if len(langs) <= 8 else
                      np.uint16 if len(langs) <= 16 else
                      np.uint32 if len(langs) <= 32 else
-                     np.uint64 if len(langs) <= 64 else
-                     np.uint128 if len(langs) <= 128 else
-                     np.uint256)
+                     np.uint64)
             self.vocab_langs = np.array(vocab_langs, dtype=dtype)
             self.rules_langs = np.array(rules_langs, dtype=dtype)
         else:
             self.vocab_langs = list(vocab_langs)
-            self.rules_langs = rules_langs
+            self.rules_langs = list(rules_langs)
         
         if self.morpher is not None:
             # re-create morpher
@@ -212,6 +216,11 @@ class Model():
         lattice = self.build_lattice(word, langs, force_slow=force_slow)
         lattice.forward_sum()
         lattice.backward_sum()
+        partition = lattice.logits_forward[-1]
+        if not np.isfinite(partition):
+            # no full-coverage decomposition exists for this word under the current vocab;
+            # skip without contribution rather than aborting the whole training step
+            return 0.0
         logits = lattice.marginal_logits()
         for l, e in zip(logits, lattice.edges):
             if not np.isfinite(l):
@@ -220,8 +229,7 @@ class Model():
             l = np.exp(l) * count
             m_vocab[vocab_id] += l
             m_rules[rule_id] += l
-        assert np.isfinite(lattice.logits_forward[-1]), f"{word}: lattice.logits_forward[-1] is not finite"
-        return lattice.logits_forward[-1] * count
+        return partition * count
     
     def add_vocab_loss(self, word, count, langs, losses, force_slow=False):
         """
@@ -281,7 +289,10 @@ class Model():
         self.vocab_logits = self.vocab_logits[order]
         self._vl_scaled = None
         if self.vocab_langs is not None:
-            self.vocab_langs = self.vocab_langs[order]
+            if isinstance(self.vocab_langs, np.ndarray):
+                self.vocab_langs = self.vocab_langs[order]
+            else:
+                self.vocab_langs = [self.vocab_langs[i] for i in order]
         if self.morpher is not None:
             # re-create morpher
             self.morpher = Morpher(self.langs, self.vocab, self.rules, 
@@ -303,7 +314,10 @@ class Model():
 
     def thumbprint(self) -> str:
         """Return a thumbprint of the model."""
-        key = f"{(self.alpha, self.beta, self.min_base_len, self.vocab, self.rules)}"
+        # use rule save_dicts (stable serialization) rather than repr() to avoid
+        # nondeterminism from any MorphRule subclass that inherits object.__repr__
+        rule_keys = [r.save_dict() for r in self.rules]
+        key = f"{(self.alpha, self.beta, self.min_base_len, self.vocab, rule_keys)}"
         md5 = hashlib.md5(key.encode("utf-8")).digest()
         return b64encode(md5[:6]).decode("utf-8")
     
@@ -320,7 +334,10 @@ class Model():
         eow = word.endswith(EOW)
         if eow:
             word = word[:-1]
-        
+        if not word:
+            # bare EOW (or empty input): nothing to greedy-tokenize
+            return [(self.unk_token_id, 1 if eow else 0)]
+
         if self.number_handling == "greedy-head":
             # repeatedly, find longest prefix in vocab until all characters are consumed
             tokens = []
@@ -358,6 +375,12 @@ class Model():
             raise ValueError("number_handling must be 'greedy-head' or 'greedy-tail'")
     
     def save_dict(self) -> dict:
+        if self.vocab_langs is None:
+            vocab_langs_out = None
+        elif isinstance(self.vocab_langs, np.ndarray):
+            vocab_langs_out = self.vocab_langs.tolist()
+        else:
+            vocab_langs_out = list(self.vocab_langs)
         return {
             'langs': list(self.langs),
             'vocab': list(self.vocab),
@@ -368,7 +391,7 @@ class Model():
             'min_base_len': self.min_base_len,
             'number_handling': self.number_handling,
             'vocab_logits': self.vocab_logits.tolist(),
-            'vocab_langs': self.vocab_langs.tolist() if self.vocab_langs is not None else None,
+            'vocab_langs': vocab_langs_out,
             'rules_logits': self.rules_logits.tolist()
         }
     

@@ -144,15 +144,17 @@ def _unescape_char(c: str) -> str:
         return "\n"
     elif c == ASCII_ENCODING_TAB:
         return "\t"
+    elif c == ASCII_ENCODING_SHY:
+        return "\u00AD"
     elif c[0] == ASCII_RESERVED_UTF8:
         try:
             c = c.replace(ASCII_RESERVED_UTF8, "")
             return bytes.fromhex(c).decode("utf-8")
-        except:
+        except (UnicodeDecodeError, ValueError):
             return "?"
     return "?"
 
-_unescape_char_regex = re.compile(f"((?:{ASCII_RESERVED_UTF8}[0-9A-F]{{2}})+|[{ASCII_ENCODING_SPACE}{ASCII_ENCODING_NEWLINE}{ASCII_ENCODING_TAB}])")
+_unescape_char_regex = re.compile(f"((?:{ASCII_RESERVED_UTF8}[0-9A-F]{{2}})+|[{ASCII_ENCODING_SPACE}{ASCII_ENCODING_NEWLINE}{ASCII_ENCODING_TAB}{ASCII_ENCODING_SHY}])")
 def _unescape_chars(cs: str) -> str:
     return _unescape_char_regex.sub(lambda m: _unescape_char(m.group(1)), cs)
 

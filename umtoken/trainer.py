@@ -247,8 +247,11 @@ class Trainer():
                 count_by_langs = Counter({lang: sum(words_by_lang[lang].values()) for lang in words_by_lang})
                 _, dominant_count = count_by_langs.most_common(1)[0]
                 for lang, lang_words in words_by_lang.items():
-                    lang_factor = 1.0
                     lang_count = count_by_langs[lang]
+                    if lang_count <= 0:
+                        # nothing to upsample (and would divide by zero)
+                        continue
+                    lang_factor = 1.0
                     if lang_count < self.config.min_balance_langs * dominant_count:
                         lang_factor = self.config.min_balance_langs * dominant_count / lang_count
                     if lang_factor != 1.0:
@@ -278,7 +281,7 @@ class Trainer():
         # get primary language for each word
         words = list(words.items())
         lang_by_words = [None] * len(words) # None means all languages
-        if self.config.tie_by_langs:
+        if self.config.tie_by_langs and words_by_lang:
             # get primary language for each word (only consider langs with positive counts)
             for i, (word, _) in enumerate(words):
                 lang_counts = Counter()
@@ -433,9 +436,14 @@ def tie_single(model: Model, words: List[Tuple[str, float]], lang_by_words: List
     langs = model.langs
     langs_map = {l: i for i, l in enumerate(langs)}
     vocab_langs = [0] * len(model.vocab) # don't care about memory consumption here
+    all_langs_mask = (1 << len(langs)) - 1
     for (word, _), lang in tqdm(zip(words, lang_by_words), desc=f'tie by langs', total=len(words), disable=not show_progress):
         ids = model.encode(word, lang, force_slow=force_slow, eow_applied=True)
-        lang_mask = 1 << langs_map[lang] if lang else (1 << len(langs)) - 1
+        if lang and lang in langs_map:
+            lang_mask = 1 << langs_map[lang]
+        else:
+            # unknown lang or None → contribute to every language
+            lang_mask = all_langs_mask
         for v_id, _ in ids:
             vocab_langs[v_id] |= lang_mask
     return vocab_langs
@@ -459,5 +467,6 @@ def tie(model: Model, words: List[Tuple[str, float]], lang_by_words: List[Option
 
 
 def add_arrays(a, b):
+    assert len(a) == len(b), f"add_arrays: length mismatch ({len(a)} vs {len(b)})"
     for i in range(len(a)):
         a[i] += b[i]
