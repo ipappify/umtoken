@@ -12,7 +12,7 @@ MIN_GREEK_ALPHABET = "αβγδεζηθικλμνξοπρστυφχψω"
 # do not include letters - they are already included in the basic latin alphabet
 # blank, tab, newline, and soft-hyphen will be escaped (as G, T, N, H, respectively)
 ASCII_DIGITS = "0123456789"
-ASCII_PUNCTUATION = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
+ASCII_PUNCTUATION = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`‘{|}~"
 
 # uppercase characters are used for escape sequences
 ASCII_RESERVED_EOW = "X"       # end of word - not used in encoding, but reserved for model to indicate end of word
@@ -43,7 +43,7 @@ EXT_LATIN_GA = "áéíóú" # Irish
 EXT_LATIN_IT = "àèéìíîòóùú" # Italian
 EXT_LATIN_LV = "āčēģīķļņšūž" # Latvian
 EXT_LATIN_LT = "ąčęėįšųūž" # Lithuanian
-EXT_LATIN_MT = "ċġħiż" # Maltese
+EXT_LATIN_MT = "ċġħż" # Maltese
 EXT_LATIN_PL = "ąćęłńóśźż" # Polish
 EXT_LATIN_PT = "áâãàçéêíóôõú" # Portuguese
 EXT_LATIN_RO = "âîășț" # Romanian
@@ -54,7 +54,7 @@ EXT_LATIN_SV = "åäö" # Swedish
 
 # EEA official languages
 EXT_LATIN_NO = "æøå" # Norwegian
-EXT_LATIN_IS = "áðéíóúýæö" # Icelandic
+EXT_LATIN_IS = "áðéíóúýæöþ" # Icelandic
 
 # Other languages
 EXT_CYRILLIC_RU = "йцъы" # Russian
@@ -158,7 +158,7 @@ def _unescape_chars(cs: str) -> str:
 
 def unescape(escaped: Union[str, Tuple[str, int, int]]) -> str:
     """
-    Unescapes an esacped word.
+    Unescapes an escaped word.
     
     Args:
         escaped: The escaped word.

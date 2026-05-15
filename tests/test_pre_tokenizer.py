@@ -18,6 +18,46 @@ def test_split():
         assert len(words) > 1, "Text should be split into multiple words"
         assert example == "".join(words), "Rejoining the split words should result in the original text"
         
+def test_split_markup():
+    pre = PreTokenizer(alphabet=EU24_ALPHABET, normalization="ipt")
+
+    standalone_tokens = [
+        "#", "##", "####",
+        "=", "==", "====",
+        "-", "--", "----",
+        "+", "++", "++++",
+        "/", "//", "////",
+        "\\", "\\\\", "\\\\\\\\",
+        "*", "**", "****",
+        "~", "~~", "~~~~",
+        "_", "__", "____",
+        "<sup>", "</sup>",
+        "<sub>", "</sub>",
+        "<u>", "</u>",
+        "{==", "==}",
+        "{++", "++}",
+        "{--", "--}",
+    ]
+    for token in standalone_tokens:
+        words = pre.split(token)
+        assert words == [token], f"Expected {[token]}, got {words}"
+
+    embedded_examples = [
+        ("x<sup>2</sup>+y", ["x", "<sup>", "2", "</sup>", "+", "y"]),
+        ("H<sub>2</sub>O", ["H", "<sub>", "2", "</sub>", "O"]),
+        ("foo<u>bar</u>", ["foo", "<u>", "bar", "</u>"]),
+        ("text{++added++}more", ["text", "{++", "added", "++}", "more"]),
+        ("text{--removed--}more", ["text", "{--", "removed", "--}", "more"]),
+        ("text{==highlighted==}more", ["text", "{==", "highlighted", "==}", "more"]),
+        ("a-b", ["a", "-", "b"]),
+        ("word--word", ["word", "--", "word"]),
+        ("<ux>", ["<", "ux", ">"]),
+    ]
+    for example, expected in embedded_examples:
+        words = pre.split(example)
+        assert words == expected, f"For {example!r}: expected {expected}, got {words}"
+        assert example == "".join(words), f"Rejoining {example!r} should yield the original text"
+
 def test_normalize_default_preserve():
     examples = [
         ("º", "º"),
