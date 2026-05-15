@@ -133,10 +133,11 @@ class Lattice():
         isfinite = math.isfinite
         exp = math.exp
         log = math.log
+        log1p = math.log1p
+        expm1 = math.expm1
         logit_word = lf[-1]
-        prob_word = exp(logit_word)
-        prob_floor = 1e-20 * prob_word
         max_loss = log(1e+20)
+        LOG_HALF = -log(2)
 
         losses = [0.0] * len(edges)
         for k, e in enumerate(edges):
@@ -146,12 +147,18 @@ class Lattice():
             if not isfinite(logit_i) or not isfinite(logit_j):
                 continue
 
-            # L = -log[(P(word) - P(word w/o eij)) / P(word)]
-            # TODO: there is probably a more numerically stable way to compute this
-            prob_word_removed = prob_word - exp(logit + logit_i + logit_j)
-            if prob_word_removed <= prob_floor:
+            # L = -log[P(word w/o eij) / P(word)] = -log(1 - exp(x)) with x = log[P(eij,word)/P(word)]
+            x = (logit + logit_i + logit_j) - logit_word
+            if x >= 0.0:
                 losses[k] = max_loss
+                continue
+            if x > LOG_HALF:
+                log_1m = log(-expm1(x))
             else:
-                losses[k] = logit_word - log(prob_word_removed)
+                log_1m = log1p(-exp(x))
+            loss = -log_1m
+            if loss > max_loss:
+                loss = max_loss
+            losses[k] = loss
 
         return losses
