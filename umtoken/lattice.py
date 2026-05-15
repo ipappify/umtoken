@@ -31,11 +31,18 @@ class Lattice():
         self.backward_type = None
 
     def add_edge(self, start, end, logit, data):
+        assert 0 <= start < end < self.count, f"invalid edge ({start}, {end}) for lattice of size {self.count}"
         self.edges.append((start, end, logit, data))
         self.edges_start[start].append(len(self.edges)-1)
         self.edges_end[end-1].append(len(self.edges)-1)
 
     def forward_max(self):
+        if self.forward_type is not None:
+            # only the forward state is stale; preserve backward results
+            self.logits_forward = [float("-inf")] * self.count
+            self.logits_forward[0] = 0.0
+            self.best_forward = [None] * self.count
+            self.forward_type = None
         logits_forward = self.logits_forward
         best_forward = self.best_forward
         edges = self.edges
@@ -72,6 +79,12 @@ class Lattice():
         return self.backtrack()
 
     def forward_sum(self):
+        if self.forward_type is not None:
+            # only the forward state is stale; preserve backward results
+            self.logits_forward = [float("-inf")] * self.count
+            self.logits_forward[0] = 0.0
+            self.best_forward = [None] * self.count
+            self.forward_type = None
         logits_forward = self.logits_forward
         edges = self.edges
         edges_start = self.edges_start
@@ -86,6 +99,11 @@ class Lattice():
         self.forward_type = "sum"
 
     def backward_sum(self):
+        if self.backward_type is not None:
+            # only the backward state is stale; preserve forward results
+            self.logits_backward = [float("-inf")] * self.count
+            self.logits_backward[-1] = 0.0
+            self.backward_type = None
         logits_backward = self.logits_backward
         edges = self.edges
         edges_end = self.edges_end
@@ -109,16 +127,18 @@ class Lattice():
         isfinite = math.isfinite
         neg_inf = float("-inf")
         logit_word = lf[-1]
-        logits = [None] * len(edges)
+        if not isfinite(logit_word):
+            return [neg_inf] * len(edges)
+        logits = [neg_inf] * len(edges)
         for k, e in enumerate(edges):
             i, j, logit, _ = e
             logit_i = lf[i]
             logit_j = lb[j]
             # P(eij|word) = P_fwd(i) * P(eij) * P_bwd(j) / P(word)
             if isfinite(logit_i) and isfinite(logit_j):
-                logits[k] = logit + logit_i + logit_j - logit_word
-            else:
-                logits[k] = neg_inf
+                m = logit + logit_i + logit_j - logit_word
+                # clamp away rounding noise above 0
+                logits[k] = m if m < 0.0 else 0.0
 
         return logits
 
