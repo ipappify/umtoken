@@ -1,6 +1,6 @@
 # Path: umtoken/pre.py
 
-from typing import List, Literal, Optional, Tuple, Union
+from typing import Iterable, List, Literal, Optional, Tuple, Union
 import regex as re
 import unicodedata
 
@@ -34,14 +34,19 @@ DEFAULT_RESERVED_TOKENS = ([PAD_TOKEN, UNK_TOKEN, SOT_TOKEN, EOT_TOKEN, MSK_TOKE
 
 _ws_or_control_regex = re.compile(r'\p{Z}(?<! )|\p{Cc}(?<![\t\n])', re.UNICODE)
 _alpha_or_num_regex = re.compile(r'\p{N}|(\p{L}(?<!\p{Lm}))+', re.UNICODE)
+# per-char form of _alpha_or_num_regex for the offset-tracking slow path
+_alpha_or_num_char_regex = re.compile(r'\p{N}|[\p{Ll}\p{Lu}\p{Lt}\p{Lo}]', re.UNICODE)
+# fast path for normalize(return_offsets=True): ASCII printable + tab/newline/CR + Latin-1 letter half
+# every char in this set is NFC-stable, NFKC-stable, and not in \p{Cf}/\p{M}/\p{Cc}/non-space \p{Z}.
+_norm_stable_regex = re.compile(r'\A[\x20-\x7E\t\n\rÀ-ÿ]*\Z', re.UNICODE)
 
 class PreTokenizer:
-    def __init__(self, 
-                 alphabet: Optional[str] = None, 
+    def __init__(self,
+                 alphabet: Optional[str] = None,
                  encoding: Optional[Encoding] = None,
                  normalization: Optional[Literal["default", "ipt", "nfc"]] = "default",
                  split_regex=SPLIT_REGEX,
-                 reserved_tokens: List[str] = DEFAULT_RESERVED_TOKENS,
+                 reserved_tokens: Optional[List[str]] = None,
                  preserve_soft_hyphen: Union[bool, str] = False,
                  preserve_format_and_diactritic: bool = False):
         """
@@ -77,19 +82,28 @@ class PreTokenizer:
         """
         
         assert alphabet is None or encoding is None, "alphabet and encoding must not be provided simultaneously"
-        assert normalization is None or normalization in ["default", "ipt", "nfc"], "normalization must be None, 'ipt', or 'nfc'"
+        assert normalization is None or normalization in ["default", "ipt", "nfc"], "normalization must be None, 'default', 'ipt', or 'nfc'"
         assert preserve_soft_hyphen in [False, True, 'remove', 'preserve', 'append'], "preserve_soft_hyphen must be a boolean or one of 'remove', 'preserve', 'append'"
-        
+
         if preserve_soft_hyphen == False:
             preserve_soft_hyphen = 'remove'
         elif preserve_soft_hyphen == True:
-            preserve_soft_hyphen = 'preserve'            
-        
+            preserve_soft_hyphen = 'preserve'
+
+        if reserved_tokens is None:
+            reserved_tokens = DEFAULT_RESERVED_TOKENS
+        # keep an ordered, deduped list so the alternation regex is deterministic across runs;
+        # longest-first so a shorter token can't shadow a longer one with the same prefix.
+        seen = set()
+        self.reserved_tokens_list = [t for t in reserved_tokens if not (t in seen or seen.add(t))]
+        regex_order = sorted(self.reserved_tokens_list, key=len, reverse=True)
+
         self.encoding = encoding or (Encoding(alphabet) if alphabet is not None else None)
         self.normalization = normalization
         self.split_regex = re.compile(split_regex, re.UNICODE)
-        self.reserved_tokens = frozenset(reserved_tokens or [])
-        self.reserved_tokens_regex = re.compile("(" + "|".join(re.escape(t) for t in self.reserved_tokens) + ")", re.UNICODE) if reserved_tokens else None
+        self.reserved_tokens = frozenset(self.reserved_tokens_list)
+        self.reserved_tokens_regex = re.compile("(" + "|".join(re.escape(t) for t in regex_order) + ")", re.UNICODE) if regex_order else None
+        self._allowed_reserved_regex_cache = {}
         self.preserve_soft_hyphen = preserve_soft_hyphen
         self.preserve_format_and_diactritic = preserve_format_and_diactritic
         
@@ -125,7 +139,13 @@ class PreTokenizer:
         if handle_reserved and self.reserved_tokens:
             reserved_tokens_regex = self.reserved_tokens_regex
             if allowed_reserved:
-                reserved_tokens_regex = re.compile("(" + "|".join(re.escape(t) for t in allowed_reserved) + ")", re.UNICODE)
+                key = frozenset(allowed_reserved)
+                reserved_tokens_regex = self._allowed_reserved_regex_cache.get(key)
+                if reserved_tokens_regex is None:
+                    # longest-first, same as the main regex, to keep matching deterministic and prefix-safe
+                    ordered = sorted(set(allowed_reserved), key=len, reverse=True)
+                    reserved_tokens_regex = re.compile("(" + "|".join(re.escape(t) for t in ordered) + ")", re.UNICODE)
+                    self._allowed_reserved_regex_cache[key] = reserved_tokens_regex
             parts = reserved_tokens_regex.split(text)
             words = []
             for i, part in enumerate(parts):
@@ -148,29 +168,98 @@ class PreTokenizer:
             words = new_words
         return words
         
-    def normalize(self, text: str) -> str:
+    def normalize(self, text: str, return_offsets: bool = False):
+        """Normalize text. If ``return_offsets`` is False, returns the normalized string.
+        If True, returns a tuple ``(normalized, src_map)`` where ``src_map[i]`` is the
+        index in the original ``text`` corresponding to the i-th character of the
+        normalized output, plus a sentinel ``src_map[len(normalized)] == len(text)``.
+        ``src_map`` is ``None`` when normalization was an identity (fast path)."""
+        if not return_offsets:
+            if self.normalization in ["default", "ipt", "nfc"]:
+                text = unicodedata.normalize("NFC", text)
+
+            if self.normalization in ["default", "ipt"]:
+                # replace non-standard whitespaces and controls with blank space
+                text = _ws_or_control_regex.sub(" ", text)
+
+            if self.normalization == "ipt":
+                # normalize digits and letters to NFKC
+                # ² -> 2, 𝑀 -> M, etc.
+                text = _alpha_or_num_regex.sub(lambda w: unicodedata.normalize("NFKC", w.group(0)), text)
+
+            if self._clean_regex:
+                text = self._clean_regex.sub("", text)
+
+            return text
+
+        # offset-aware path
+        if _norm_stable_regex.match(text):
+            return text, None
+        return self._normalize_with_offsets(text)
+
+    def _normalize_with_offsets(self, text: str):
+        """Slow path of ``normalize`` that produces an offset map alongside the
+        normalized text. Each output character is tagged with the index of the
+        first source character it came from; a sentinel equal to ``len(text)`` is
+        appended so end-positions can be looked up uniformly.
+
+        Caveat: NFC is applied per canonical combining sequence (starter + marks),
+        so fully-decomposed Hangul jamo sequences (L+V+T as separate codepoints)
+        will not recompose here. Real-world Hangul is overwhelmingly pre-composed,
+        which is NFC-stable and unaffected."""
+        n = len(text)
+        chars: List[str] = []
+        src: List[int] = []
+
         if self.normalization in ["default", "ipt", "nfc"]:
-            text = unicodedata.normalize("NFC", text)
+            i = 0
+            while i < n:
+                j = i + 1
+                while j < n and unicodedata.combining(text[j]) != 0:
+                    j += 1
+                for c in unicodedata.normalize("NFC", text[i:j]):
+                    chars.append(c)
+                    src.append(i)
+                i = j
+        else:
+            chars = list(text)
+            src = list(range(n))
 
         if self.normalization in ["default", "ipt"]:
-            # replace non-standard whitespaces and controls with blank space
-            text = _ws_or_control_regex.sub(" ", text)
+            for k in range(len(chars)):
+                if _ws_or_control_regex.match(chars[k]):
+                    chars[k] = " "
 
         if self.normalization == "ipt":
-            # normalize digits and letters to NFKC
-            # ² -> 2, 𝑀 -> M, etc.
-            text = _alpha_or_num_regex.sub(lambda w: unicodedata.normalize("NFKC", w.group(0)), text)
-            
-        if self._clean_regex:
-            text = self._clean_regex.sub("", text)
+            new_chars: List[str] = []
+            new_src: List[int] = []
+            for c, s in zip(chars, src):
+                if _alpha_or_num_char_regex.match(c):
+                    for nc in unicodedata.normalize("NFKC", c):
+                        new_chars.append(nc)
+                        new_src.append(s)
+                else:
+                    new_chars.append(c)
+                    new_src.append(s)
+            chars, src = new_chars, new_src
 
-        return text
+        if self._clean_regex is not None:
+            out_chars: List[str] = []
+            out_src: List[int] = []
+            for c, s in zip(chars, src):
+                if not self._clean_regex.match(c):
+                    out_chars.append(c)
+                    out_src.append(s)
+            chars, src = out_chars, out_src
+
+        src.append(n)
+        return "".join(chars), src
         
-    def escape(self, 
-               word: str, 
-               handle_reserved: bool = False, 
+    def escape(self,
+               word: str,
+               handle_reserved: bool = False,
                allowed_reserved: Optional[list[str]] = None,
-               return_as_tuple: bool = False) -> str:
+               return_as_tuple: bool = False) -> Union[str, Tuple[str, int, int]]:
         """
         Escapes the word.
         
@@ -194,37 +283,93 @@ class PreTokenizer:
         
         return self.encoding.escape(word, return_as_tuple)
         
-    def split_and_escape(self, text: str, 
+    def split_and_escape(self, text: str,
                          handle_reserved: bool = False,
                          allowed_reserved: Optional[list[str]] = None,
                          return_ranges: bool = False,
                          return_as_tuple: bool = False) -> Union[List[str], Tuple[List[str], List[Tuple[int, int]]]]:
         """
         Splits the text into words, normalizes, and escapes them.
-        
+
         Args:
             text: The text to split and escape.
             handle_reserved: Whether to handle reserved tokens. If True, reserved tokens are not split and escaped.
             allowed_reserved: Restrict allowed reserved tokens to this list, if provided.
-            return_ranges: Whether to return the ranges of the original words (offset, length) in the text (before they are normalized and escaped).
+            return_ranges: Whether to return the ranges (offset, length) of each word as positions in the *original* text (before normalization and escaping).
             return_as_tuple: Whether to return the escaped words as tuples (escaped word, whitespace, uppercase).
-            
+
         Returns:
             If return_ranges is False, the list of escaped words.
-            If return_ranges is True, the list of escaped words and the list of ranges of the original words in the text.
+            If return_ranges is True, a tuple (escaped words, ranges in the original text).
         """
-        if self.preserve_soft_hyphen == 'remove':
-            text = text.replace("\u00AD", "")
-        
-        words = self.split(text, handle_reserved, allowed_reserved)
-        if return_ranges:
-            idxs = cumsum(len(w) for w in words)
-            ranges = [(start, len(word)) for word, start in zip(words, idxs)]
-        words = [self.escape(word, 
-                             handle_reserved=handle_reserved, 
-                             allowed_reserved=allowed_reserved, 
-                             return_as_tuple=return_as_tuple) for word in words]
-        return (words, ranges) if return_ranges else words
+        # SHY removal in 'remove' mode is handled by normalize() inside split(); no need to pre-strip here.
+        if not return_ranges:
+            words = self.split(text, handle_reserved, allowed_reserved)
+            words = [self.escape(word,
+                                 handle_reserved=handle_reserved,
+                                 allowed_reserved=allowed_reserved,
+                                 return_as_tuple=return_as_tuple) for word in words]
+            return words
+
+        # Range-tracking path: normalize once with offsets, then split the normalized text
+        # directly so match positions can be mapped back into the original text.
+        if text is None or len(text) == 0:
+            return [], []
+
+        normalized, src_map = self.normalize(text, return_offsets=True)
+
+        def to_orig(n_start: int, n_end: int) -> Tuple[int, int]:
+            if src_map is None:
+                return (n_start, n_end - n_start)
+            return (src_map[n_start], src_map[n_end] - src_map[n_start])
+
+        word_spans = list(self._split_normalized(normalized, handle_reserved, allowed_reserved))
+
+        if self.preserve_soft_hyphen == 'append' and any(w == "­" for w, _, _ in word_spans):
+            merged: List[Tuple[str, int, int]] = []
+            for w, ns, ne in word_spans:
+                if w == "­" and merged and not merged[-1][0].endswith("­"):
+                    pw, pns, _ = merged[-1]
+                    merged[-1] = (pw + w, pns, ne)
+                else:
+                    merged.append((w, ns, ne))
+            word_spans = merged
+
+        escaped = [self.escape(w,
+                               handle_reserved=handle_reserved,
+                               allowed_reserved=allowed_reserved,
+                               return_as_tuple=return_as_tuple) for w, _, _ in word_spans]
+        ranges = [to_orig(ns, ne) for _, ns, ne in word_spans]
+        return escaped, ranges
+
+    def _split_normalized(self, text: str,
+                          handle_reserved: bool,
+                          allowed_reserved: Optional[List[str]]) -> Iterable[Tuple[str, int, int]]:
+        """Split already-normalized text, yielding (word, start, end) with positions
+        in the normalized text. Mirrors the splitting logic of :meth:`split` but
+        does not re-normalize and exposes match positions."""
+        if handle_reserved and self.reserved_tokens:
+            reserved_regex = self.reserved_tokens_regex
+            if allowed_reserved:
+                key = frozenset(allowed_reserved)
+                reserved_regex = self._allowed_reserved_regex_cache.get(key)
+                if reserved_regex is None:
+                    ordered = sorted(set(allowed_reserved), key=len, reverse=True)
+                    reserved_regex = re.compile("(" + "|".join(re.escape(t) for t in ordered) + ")", re.UNICODE)
+                    self._allowed_reserved_regex_cache[key] = reserved_regex
+            pos = 0
+            for rm in reserved_regex.finditer(text):
+                if pos < rm.start():
+                    for sm in self.split_regex.finditer(text, pos, rm.start()):
+                        yield sm.group(1), sm.start(1), sm.end(1)
+                yield rm.group(0), rm.start(), rm.end()
+                pos = rm.end()
+            if pos < len(text):
+                for sm in self.split_regex.finditer(text, pos):
+                    yield sm.group(1), sm.start(1), sm.end(1)
+        else:
+            for sm in self.split_regex.finditer(text):
+                yield sm.group(1), sm.start(1), sm.end(1)
     
     def unescape(self, 
                  escaped: Union[str, Tuple[str,int,int]],
@@ -255,20 +400,20 @@ class PreTokenizer:
         Args:
             words: The list of words to unescape and join.
             omit_reserved: Whether to omit reserved tokens from the joined text.
-            return_ranges: Whether to return the ranges of the original words (offset, length) in the text (before they are unescaped).
+            return_ranges: Whether to return the ranges (offset, length) of each input word in the joined unescaped text.
             
         Returns:
             The unescaped and joined text.
         """
-        words = iter(self.unescape(word) for word in words)
+        words = iter(self.unescape(word, handle_reserved=True) for word in words)
         if omit_reserved:
             words = iter((word if word not in self.reserved_tokens else "") for word in words)
-            
+
         if return_ranges:
             words = list(words)
             idxs = cumsum(len(w) for w in words)
             ranges = [(start, len(word)) for word, start in zip(words, idxs)]
-            
+
         text = "".join(words)
         return (text, ranges) if return_ranges else text
     
@@ -277,10 +422,11 @@ class PreTokenizer:
             "alphabet": self.encoding.alphabet,
             "normalization": self.normalization,
             "split_regex": self.split_regex.pattern,
-            "reserved_tokens": list(self.reserved_tokens),
-            "preserve_soft_hyphen": self.preserve_soft_hyphen
+            "reserved_tokens": list(self.reserved_tokens_list),
+            "preserve_soft_hyphen": self.preserve_soft_hyphen,
+            "preserve_format_and_diactritic": self.preserve_format_and_diactritic,
         }
-    
+
     @staticmethod
     def load_dict(d: dict, **kwargs):
         return PreTokenizer(
@@ -289,5 +435,6 @@ class PreTokenizer:
             split_regex=kwargs.get("split_regex", d.get("split_regex")),
             reserved_tokens=kwargs.get("reserved_tokens", d.get("reserved_tokens")),
             preserve_soft_hyphen=kwargs.get("preserve_soft_hyphen", d.get("preserve_soft_hyphen")),
+            preserve_format_and_diactritic=kwargs.get("preserve_format_and_diactritic", d.get("preserve_format_and_diactritic", False)),
         )
         
