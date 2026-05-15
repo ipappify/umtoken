@@ -2,17 +2,15 @@
 
 import math
 
-import numpy as np
-
 def log_sum_exp(a, b):
     if a == float("-inf"):
         return b
     if b == float("-inf"):
         return a
     if a > b:
-        return a + np.log1p(np.exp(b - a))
+        return a + math.log1p(math.exp(b - a))
     else:
-        return b + np.log1p(np.exp(a - b))
+        return b + math.log1p(math.exp(a - b))
 
 class Lattice():
     def __init__(self, count):
@@ -39,10 +37,12 @@ class Lattice():
 
     def forward_max(self):
         for l in range(self.count-1):
+            lf_left = self.logits_forward[l]
             for k in self.edges_start[l]:
-                i, j, logit, _ = self.edges[k]
-                if self.logits_forward[i] + logit > self.logits_forward[j]:
-                    self.logits_forward[j] = self.logits_forward[i] + logit
+                _, j, logit, _ = self.edges[k]
+                new = lf_left + logit
+                if new > self.logits_forward[j]:
+                    self.logits_forward[j] = new
                     self.best_forward[j] = k
         self.forward_type = "max"
 
@@ -66,16 +66,18 @@ class Lattice():
 
     def forward_sum(self):
         for l in range(self.count-1):
+            lf_left = self.logits_forward[l]
             for k in self.edges_start[l]:
-                i, j, logit, _ = self.edges[k]
-                self.logits_forward[j] = log_sum_exp(self.logits_forward[j], self.logits_forward[i] + logit)
+                _, j, logit, _ = self.edges[k]
+                self.logits_forward[j] = log_sum_exp(self.logits_forward[j], lf_left + logit)
         self.forward_type = "sum"
 
     def backward_sum(self):
         for l in reversed(range(self.count-1)):
+            lb_right = self.logits_backward[l+1]
             for k in self.edges_end[l]:
-                i, j, logit, _ = self.edges[k]
-                self.logits_backward[i] = log_sum_exp(self.logits_backward[i], self.logits_backward[j] + logit)
+                i, _, logit, _ = self.edges[k]
+                self.logits_backward[i] = log_sum_exp(self.logits_backward[i], lb_right + logit)
         self.backward_type = "sum"
 
     def marginal_logits(self):
@@ -102,7 +104,8 @@ class Lattice():
 
         # losses are negative logs of relative reductions of the word probability when a certain edge is removed
         logit_word = self.logits_forward[-1]
-        prob_word = np.exp(logit_word)
+        prob_word = math.exp(logit_word)
+        max_loss = math.log(1e+20)
 
         losses = [0.0] * len(self.edges)
         for k, e in enumerate(self.edges):
@@ -114,10 +117,10 @@ class Lattice():
 
             # L = -log[(P(word) - P(word w/o eij)) / P(word)]
             # TODO: there is probably a more numerically stable way to compute this
-            prob_word_removed = prob_word - np.exp(logit + logit_i + logit_j)
+            prob_word_removed = prob_word - math.exp(logit + logit_i + logit_j)
             if prob_word_removed <= 1e-20 * prob_word:
-                losses[k] = np.log(1e+20)
+                losses[k] = max_loss
             else:
-                losses[k] = logit_word - np.log(prob_word_removed)
+                losses[k] = logit_word - math.log(prob_word_removed)
 
         return losses

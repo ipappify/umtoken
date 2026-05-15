@@ -69,8 +69,12 @@ class Model():
         self.unk_token_id = unk_token_id
         self.min_base_len = min_base_len
         self.number_handling = number_handling
-        self.vocab_logits = np.array(vocab_logits, dtype=np.float32) if isinstance(vocab_logits, list) else vocab_logits 
+        self.vocab_logits = np.array(vocab_logits, dtype=np.float32) if isinstance(vocab_logits, list) else vocab_logits
         self.rules_logits = np.array(rules_logits, dtype=np.float32) if isinstance(rules_logits, list) else rules_logits
+        # cached scaled logits as Python lists for build_lattice's per-edge logit sum;
+        # invalidated by reset_logits, update_logits, and rearrange_vocab
+        self._vl_scaled = None
+        self._rl_scaled = None
 
         assert self.vocab_logits.shape == (len(vocab),), "vocab and vocab_logits must have the same length"
         assert self.rules_logits.shape == (len(rules),), "rules and rules_logits must have the same length"
@@ -99,11 +103,15 @@ class Model():
         rules_count = len(self.rules)
         self.vocab_logits = np.zeros(vocab_count, dtype=np.float32) - np.log(vocab_count)
         self.rules_logits = np.zeros(rules_count, dtype=np.float32) - np.log(rules_count)
-    
+        self._vl_scaled = None
+        self._rl_scaled = None
+
     def update_logits(self, m_vocab: np.ndarray, m_rules: np.ndarray):
         """Update the logits based on the counts."""
         self.vocab_logits = self._normalize(m_vocab)
         self.rules_logits = self._normalize(m_rules)
+        self._vl_scaled = None
+        self._rl_scaled = None
         
     def update_tied_langs(self, langs: List[str], vocab_langs: List[int]):
         """
@@ -237,20 +245,26 @@ class Model():
     def build_lattice(self, word, langs, force_slow=False):
         """
         Build a lattice for a word.
-        
+
         Args:
             word: The word.
             langs: The languages.
             force_slow: Whether to force slow decomposition.
-            
+
         Returns:
             The lattice.
         """
+        if self._vl_scaled is None:
+            self._vl_scaled = (self.vocab_logits * self.alpha).tolist()
+        if self._rl_scaled is None:
+            self._rl_scaled = (self.rules_logits * self.beta).tolist()
+        vl = self._vl_scaled
+        rl = self._rl_scaled
+        rules = self.rules
         lattice = Lattice(len(word)+1)
         for vocab_id, rule_id, i, j in self.morpher.decompose(word, langs, force_slow=force_slow):
-            logit = (float(self.vocab_logits[vocab_id]) * self.alpha +
-                     float(self.rules_logits[rule_id]) * self.beta)
-            penalty = self.rules[rule_id].penalty
+            logit = vl[vocab_id] + rl[rule_id]
+            penalty = rules[rule_id].penalty
             lattice.add_edge(i, j, logit - penalty - i * SHIFT, (vocab_id, rule_id))
         return lattice
     
@@ -264,6 +278,7 @@ class Model():
         self.vocab = [self.vocab[i] for i in order]
         self.vocab_lookup = {v: i for i, v in enumerate(self.vocab)}
         self.vocab_logits = self.vocab_logits[order]
+        self._vl_scaled = None
         if self.vocab_langs is not None:
             self.vocab_langs = self.vocab_langs[order]
         if self.morpher is not None:
