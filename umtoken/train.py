@@ -23,8 +23,10 @@ def main(args):
     assert len(args.languages) > 0, "No languages specified."
     assert args.normalization in ["default", "ipt", "nfc"], "Unsupported normalization."
     
-    languages: List[str] = args.languages
-    expand_languages(languages)
+    # expand_languages mutates in place but only returns a deduped/sorted copy;
+    # capture the return value so we don't carry duplicates through the rest of the run
+    languages: List[str] = expand_languages(list(args.languages))
+    args.languages = languages
     alphabet = get_alphabet(languages)
 
     # config
@@ -68,7 +70,18 @@ def main(args):
    
     loaded_from_cache = False
     if args.cache_dir:
-        key = f"{args.normalization}--{config.alphabet}--{'|'.join(args.input_file)}"
+        # include every input-affecting flag so changing any of them invalidates the cache
+        key_parts = [
+            args.normalization,
+            config.alphabet,
+            "|".join(args.input_file),
+            "|".join(args.languages),
+            str(args.input_normalized),
+            str(args.input_encoded),
+            args.continue_char or "",
+            str(args.min_count),
+        ]
+        key = "--".join(key_parts)
         key_hash = hashlib.md5(key.encode()).hexdigest()
         words_cache_file = os.path.join(args.cache_dir, f"words--{key_hash}.json")
         if os.path.exists(words_cache_file):
@@ -96,9 +109,16 @@ def main(args):
                 if args.continue_char:
                     counter = {replace_continue_char(w, args.continue_char): c for w, c in counter.items()}
                 if not args.input_normalized:
-                    counter = {pre.normalize(w): c for w, c in counter.items()}
+                    # sum counts when distinct inputs normalize to the same key (e.g. decomposed vs precomposed)
+                    merged = Counter()
+                    for w, c in counter.items():
+                        merged[pre.normalize(w)] += c
+                    counter = merged
                 if not args.input_encoded:
-                    counter = {pre.encoding.escape(w, return_as_tuple=True)[0]: c for w, c in counter.items()}
+                    merged = Counter()
+                    for w, c in counter.items():
+                        merged[pre.encoding.escape(w, return_as_tuple=True)[0]] += c
+                    counter = merged
                 counter = {w: c for w, c in counter.items() if len(w) > 1} # filter single char words (after escaping)
                 if not input_lang:
                     words += Counter(counter)
@@ -125,8 +145,10 @@ def main(args):
     # build and save the tokenizer
     thumbprint = model.thumbprint()
     tokenizer = Tokenizer(pre, model, thumbprint=thumbprint)
-    os.makedirs(os.path.dirname(args.output_file), exist_ok=True)
-    tokenizer.save(args.output_file) 
+    out_dir = os.path.dirname(args.output_file)
+    if out_dir:
+        os.makedirs(out_dir, exist_ok=True)
+    tokenizer.save(args.output_file)
 
 if __name__ == '__main__':
 

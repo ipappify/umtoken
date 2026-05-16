@@ -31,7 +31,7 @@ class Morpher:
         assert len(rules) >= 2, f"need at least the two default rules (empty rule, end of word rule)"
         assert isinstance(rules[0], SuffixRule) and isinstance(rules[1], SuffixRule), f"first two rules must be SuffixRule instances"
         assert rules[0].suffix == "" and rules[0].op is None and rules[1].constraint_regex is None, f"first rule must be default empty rule"
-        assert rules[1].suffix == EOW and rules[0].op is None and rules[1].constraint_regex is None, f"second rule must be default end of word rule"
+        assert rules[1].suffix == EOW and rules[1].op is None and rules[1].constraint_regex is None, f"second rule must be default end of word rule"
         assert vocab_langs is None or len(vocab_langs) == len(vocab), f"vocab_langs must have the same length as vocab"
         assert rules_langs is None or len(rules_langs) == len(rules), f"rules_langs must have the same length as rules"
 
@@ -52,13 +52,15 @@ class Morpher:
                                    max(len(l) for l in self.vocab))
 
         self.stem_trie = None
+        self._stem_trie_built = False
         if prebuild_stem_trie:
             self._build_stem_trie()
 
     def _build_stem_trie(self):
-        if self.any_op and self.stem_trie is None:
+        if self.any_op and not self._stem_trie_built:
             # TODO: it would be faster to group rules by ops so that each op is only applied once to each base
-            stems = set()
+            # dict preserves insertion order and dedupes — keeps trie construction deterministic
+            stems = {}
             for j, r in enumerate(self.rules):
                 if r.op is None:
                     continue
@@ -70,16 +72,18 @@ class Morpher:
                     if r.op.can_apply(l):
                         stem = r.op.apply(l)
                         assert r.op.can_revert(stem), f"op {r.op} cannot be reverted for base {l} -> {stem}"
-                        stems.add((stem, (i, j)))
-            
-            self.stem_trie = LookupTrie(pairs=stems) if len(stems) > 0 else None
-            self.max_part_length = max(self.max_part_length, max(len(r) for r, _ in stems))
+                        stems[(stem, (i, j))] = None
+
+            if stems:
+                self.stem_trie = LookupTrie(pairs=stems.keys())
+                self.max_part_length = max(self.max_part_length, max(len(r) for r, _ in stems))
+            self._stem_trie_built = True
             
     def decompose(self, word: str, langs: Optional[Union[str,int,List[str]]], force_slow: bool = False) -> Iterable[Tuple[int, int, int, int]]:
         """Return all valid decompositions inside word as tuples (base index, rule index, start index, end index).
         Args:
             word: Word to decompose.
-            lang: Language of word.
+            langs: Language(s) of word (None = all langs).
             force_slow: Whether to force slow decomposition (and prevent building the stem trie).
         Returns:
             Iterable of tuples (base index, rule index, start index, end index)."""
@@ -155,7 +159,9 @@ class Morpher:
         self._build_stem_trie()
 
         stems = [[] for _ in range(len(word))]
-        rules = [[('', 0)] for _ in range(len(word)+1)] # add empty rule
+        # rules[j] for j>=1: positions where a stem can end; pre-seed with the empty-rule fallback.
+        # index 0 is never queried (stems have length >= 1) but kept to align indexing with j.
+        rules = [[] if j == 0 else [('', 0)] for j in range(len(word)+1)]
 
         # collect stems and rules for all parts
         for i in range(len(word)):
@@ -176,8 +182,8 @@ class Morpher:
                 stems[i].append((stem, base_idx, None))
 
             # iterate over stems (= morphed bases)
-            if not self.stem_trie is None:
-                for stem, idxs in self.stem_trie.prefixes_and_values(word[i:]):
+            if self.stem_trie is not None:
+                for stem, idxs in self.stem_trie.prefixes_and_values(part):
                     for base_idx, rule_idx in idxs:
                         stems[i].append((stem, base_idx, rule_idx))
         
@@ -202,7 +208,6 @@ class Morpher:
                     # assert rule.op.can_revert(stem), f"op {rule.op} cannot be reverted for base {base} -> {stem}"
 
                     k = j + len(suffix)
-                    part = stem + suffix
                     if rule.constraint_regex and not rule.constraint_regex.search(base):
                         continue
                     

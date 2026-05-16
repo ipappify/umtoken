@@ -20,6 +20,10 @@ def test_encoding():
         "\t\t",   # multiple tabs
         " ",      # space
         "  ",     # multiple spaces
+        "soft­hyphen",            # SHY in the middle of a word
+        "lead­ing­shy",           # multiple SHYs
+        "­start",                  # SHY at the start
+        "end­",                    # SHY at the end
     ]
     
     enc = Encoding(EU24_ALPHABET)

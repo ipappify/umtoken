@@ -175,3 +175,65 @@ def test_split_and_escape_special():
     expected = ["[RESERVED]", "[RESERVED]", "Yresistivity", "[RESERVED]", "is", "G", "[RESERVED]"]
     words, ranges = pre.split_and_escape(example, return_ranges=True, handle_reserved=True)
     assert words == expected, f"Expected {expected}, got {words}"
+
+def test_split_and_escape_ranges_fast_path_identity():
+    """Pure ASCII text takes the fast path: ranges should index the input directly
+    and reconstruct the original word-for-word."""
+    pre = PreTokenizer(alphabet=EU24_ALPHABET, normalization="ipt")
+    example = "Hello world foo bar baz"
+    words, ranges = pre.split_and_escape(example, return_ranges=True)
+    reconstructed = "".join(example[s:s+l] for s, l in ranges)
+    assert reconstructed == example, f"ranges should reconstruct the original input; got {reconstructed!r}"
+    for word, (s, l) in zip(words, ranges):
+        assert pre.unescape(word) == example[s:s+l].lower() or pre.unescape(word) == example[s:s+l], \
+            f"unescape({word!r}) should round-trip with original substring {example[s:s+l]!r}"
+
+def test_split_and_escape_ranges_with_nfc_composition():
+    """Decomposed input: 'Cafe' + combining acute. NFC composes it to 'Café' (5 source chars -> 4 normalized chars).
+    The first range must still cover the *original* 5-char span, not the 4-char normalized one."""
+    pre = PreTokenizer(alphabet=EU24_ALPHABET, normalization="default")
+    example = "Café latte"  # 11 source chars; normalized is "Café latte" (10 chars)
+    words, ranges = pre.split_and_escape(example, return_ranges=True)
+    assert "".join(example[s:s+l] for s, l in ranges) == example, "ranges should partition the original decomposed text"
+    # the first word's range must include the trailing combining mark
+    first_start, first_len = ranges[0]
+    assert example[first_start:first_start+first_len] == "Café", \
+        f"first range should cover decomposed 'Cafe\\u0301'; got {example[first_start:first_start+first_len]!r}"
+
+def test_split_and_escape_ranges_with_ipt_nfkc():
+    """'ipt' mode NFKC: '²' -> '2'. Range for '2' must still point at the original '²' position."""
+    pre = PreTokenizer(alphabet=EU24_ALPHABET, normalization="ipt")
+    example = "x²+y³"
+    words, ranges = pre.split_and_escape(example, return_ranges=True)
+    assert "".join(example[s:s+l] for s, l in ranges) == example
+    # find the word that unescapes to "2" — its range must point at the '²' in the original text
+    for word, (s, l) in zip(words, ranges):
+        if pre.unescape(word) == "2":
+            assert example[s:s+l] == "²", f"range for normalized '2' should be the original '²'; got {example[s:s+l]!r}"
+            break
+    else:
+        assert False, f"expected a word that unescapes to '2'; got {[pre.unescape(w) for w in words]}"
+
+def test_split_and_escape_ranges_with_stripped_cf():
+    """Format characters (zero-width space) get stripped by normalize. The ZWSP position must still be
+    accounted for so that reconstruction from ranges yields the original text."""
+    pre = PreTokenizer(alphabet=EU24_ALPHABET, normalization="default")
+    example = "foo​bar baz"  # ZWSP is \p{Cf}, stripped; the rest is unchanged
+    words, ranges = pre.split_and_escape(example, return_ranges=True)
+    assert "".join(example[s:s+l] for s, l in ranges) == example, \
+        "ranges should cover every original character, including stripped Cf"
+
+def test_split_and_escape_ranges_with_reserved_and_unicode():
+    """Reserved-token splitting must produce ranges in the *original* text even when
+    surrounding text undergoes length-changing normalization."""
+    pre = PreTokenizer(alphabet=EU24_ALPHABET, normalization="ipt", reserved_tokens=["[X]"])
+    example = "ab[X]x²"  # mix of reserved token and 'ipt'-normalized '²'
+    words, ranges = pre.split_and_escape(example, return_ranges=True, handle_reserved=True)
+    assert "".join(example[s:s+l] for s, l in ranges) == example
+    # the [X] reserved token must map to its original position
+    for word, (s, l) in zip(words, ranges):
+        if word == "[X]":
+            assert example[s:s+l] == "[X]"
+            break
+    else:
+        assert False, f"expected '[X]' among the words; got {words}"

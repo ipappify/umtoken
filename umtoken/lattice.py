@@ -2,17 +2,15 @@
 
 import math
 
-import numpy as np
-
 def log_sum_exp(a, b):
     if a == float("-inf"):
         return b
     if b == float("-inf"):
         return a
     if a > b:
-        return a + np.log1p(np.exp(b - a))
+        return a + math.log1p(math.exp(b - a))
     else:
-        return b + np.log1p(np.exp(a - b))
+        return b + math.log1p(math.exp(a - b))
 
 class Lattice():
     def __init__(self, count):
@@ -33,17 +31,33 @@ class Lattice():
         self.backward_type = None
 
     def add_edge(self, start, end, logit, data):
+        assert 0 <= start < end < self.count, f"invalid edge ({start}, {end}) for lattice of size {self.count}"
         self.edges.append((start, end, logit, data))
         self.edges_start[start].append(len(self.edges)-1)
         self.edges_end[end-1].append(len(self.edges)-1)
 
     def forward_max(self):
+        if self.forward_type is not None:
+            # only the forward state is stale; preserve backward results
+            self.logits_forward = [float("-inf")] * self.count
+            self.logits_forward[0] = 0.0
+            self.best_forward = [None] * self.count
+            self.forward_type = None
+        logits_forward = self.logits_forward
+        best_forward = self.best_forward
+        edges = self.edges
+        edges_start = self.edges_start
+        neg_inf = float("-inf")
         for l in range(self.count-1):
-            for k in self.edges_start[l]:
-                i, j, logit, _ = self.edges[k]
-                if self.logits_forward[i] + logit > self.logits_forward[j]:
-                    self.logits_forward[j] = self.logits_forward[i] + logit
-                    self.best_forward[j] = k
+            lf_left = logits_forward[l]
+            if lf_left == neg_inf:
+                continue
+            for k in edges_start[l]:
+                _, j, logit, _ = edges[k]
+                new = lf_left + logit
+                if new > logits_forward[j]:
+                    logits_forward[j] = new
+                    best_forward[j] = k
         self.forward_type = "max"
 
     def backtrack(self):
@@ -65,59 +79,106 @@ class Lattice():
         return self.backtrack()
 
     def forward_sum(self):
+        if self.forward_type is not None:
+            # only the forward state is stale; preserve backward results
+            self.logits_forward = [float("-inf")] * self.count
+            self.logits_forward[0] = 0.0
+            self.best_forward = [None] * self.count
+            self.forward_type = None
+        logits_forward = self.logits_forward
+        edges = self.edges
+        edges_start = self.edges_start
+        neg_inf = float("-inf")
         for l in range(self.count-1):
-            for k in self.edges_start[l]:
-                i, j, logit, _ = self.edges[k]
-                self.logits_forward[j] = log_sum_exp(self.logits_forward[j], self.logits_forward[i] + logit)
+            lf_left = logits_forward[l]
+            if lf_left == neg_inf:
+                continue
+            for k in edges_start[l]:
+                _, j, logit, _ = edges[k]
+                logits_forward[j] = log_sum_exp(logits_forward[j], lf_left + logit)
         self.forward_type = "sum"
 
     def backward_sum(self):
+        if self.backward_type is not None:
+            # only the backward state is stale; preserve forward results
+            self.logits_backward = [float("-inf")] * self.count
+            self.logits_backward[-1] = 0.0
+            self.backward_type = None
+        logits_backward = self.logits_backward
+        edges = self.edges
+        edges_end = self.edges_end
+        neg_inf = float("-inf")
         for l in reversed(range(self.count-1)):
-            for k in self.edges_end[l]:
-                i, j, logit, _ = self.edges[k]
-                self.logits_backward[i] = log_sum_exp(self.logits_backward[i], self.logits_backward[j] + logit)
+            lb_right = logits_backward[l+1]
+            if lb_right == neg_inf:
+                continue
+            for k in edges_end[l]:
+                i, _, logit, _ = edges[k]
+                logits_backward[i] = log_sum_exp(logits_backward[i], lb_right + logit)
         self.backward_type = "sum"
 
     def marginal_logits(self):
         assert self.forward_type == "sum"
         assert self.backward_type == "sum"
 
-        logit_word = self.logits_forward[-1]
-        logits = [None] * len(self.edges)
-        for k, e in enumerate(self.edges):
+        lf = self.logits_forward
+        lb = self.logits_backward
+        edges = self.edges
+        isfinite = math.isfinite
+        neg_inf = float("-inf")
+        logit_word = lf[-1]
+        if not isfinite(logit_word):
+            return [neg_inf] * len(edges)
+        logits = [neg_inf] * len(edges)
+        for k, e in enumerate(edges):
             i, j, logit, _ = e
-            logit_i = self.logits_forward[i]
-            logit_j = self.logits_backward[j]
+            logit_i = lf[i]
+            logit_j = lb[j]
             # P(eij|word) = P_fwd(i) * P(eij) * P_bwd(j) / P(word)
-            if math.isfinite(logit_i) and math.isfinite(logit_j):
-                logits[k] = logit + logit_i + logit_j - logit_word
-            else:
-                logits[k] = float("-inf")
+            if isfinite(logit_i) and isfinite(logit_j):
+                m = logit + logit_i + logit_j - logit_word
+                # clamp away rounding noise above 0
+                logits[k] = m if m < 0.0 else 0.0
 
         return logits
-    
+
     def removal_losses(self):
         assert self.forward_type == "sum"
         assert self.backward_type == "sum"
 
         # losses are negative logs of relative reductions of the word probability when a certain edge is removed
-        logit_word = self.logits_forward[-1]
-        prob_word = np.exp(logit_word)
+        lf = self.logits_forward
+        lb = self.logits_backward
+        edges = self.edges
+        isfinite = math.isfinite
+        exp = math.exp
+        log = math.log
+        log1p = math.log1p
+        expm1 = math.expm1
+        logit_word = lf[-1]
+        max_loss = log(1e+20)
+        LOG_HALF = -log(2)
 
-        losses = [0.0] * len(self.edges)
-        for k, e in enumerate(self.edges):
+        losses = [0.0] * len(edges)
+        for k, e in enumerate(edges):
             i, j, logit, _ = e
-            logit_i = self.logits_forward[i]
-            logit_j = self.logits_backward[j]
-            if not math.isfinite(logit_i) or not math.isfinite(logit_j):
+            logit_i = lf[i]
+            logit_j = lb[j]
+            if not isfinite(logit_i) or not isfinite(logit_j):
                 continue
 
-            # L = -log[(P(word) - P(word w/o eij)) / P(word)]
-            # TODO: there is probably a more numerically stable way to compute this
-            prob_word_removed = prob_word - np.exp(logit + logit_i + logit_j)
-            if prob_word_removed <= 1e-20 * prob_word:
-                losses[k] = np.log(1e+20)
+            # L = -log[P(word w/o eij) / P(word)] = -log(1 - exp(x)) with x = log[P(eij,word)/P(word)]
+            x = (logit + logit_i + logit_j) - logit_word
+            if x >= 0.0:
+                losses[k] = max_loss
+                continue
+            if x > LOG_HALF:
+                log_1m = log(-expm1(x))
             else:
-                losses[k] = logit_word - np.log(prob_word_removed)
+                log_1m = log1p(-exp(x))
+            loss = -log_1m
+            if loss > max_loss:
+                loss = max_loss
+            losses[k] = loss
 
         return losses

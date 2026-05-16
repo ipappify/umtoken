@@ -5,7 +5,6 @@ import regex as re
 from collections import Counter
 from typing import Dict, List, Optional, Tuple, Union
 from multiprocessing import Pool
-from time import sleep
 
 import numpy as np
 from tqdm import tqdm
@@ -48,18 +47,18 @@ DEFAULT_ALPHA = 1.0
 DEFAULT_BETA = 0.02
 
 class TrainerConfig():
-    def __init__(self, 
-                 vocab_size: int = 24 * 1024, 
+    def __init__(self,
+                 vocab_size: int = 24 * 1024,
                  alphabet: str = EU3_ALPHABET,
                  escape_chars: str = ASCII_ENCODING,
-                 reserved_tokens: List[str] = DEFAULT_RESERVED_TOKENS,
+                 reserved_tokens: Optional[List[str]] = None,
                  unk_token: str = UNK_TOKEN,
                  spread_factor: float = 16,
                  max_token_length: int = 12,
                  token_regex: Optional[str] = None,
                  discount_exponent: float = 1.0,
                  min_count: int = 1,
-                 seed_tokens: List[str] = DEFAULT_NUMBER_SEED + DEFAULT_WS_SEED + DEFAULT_MARKUP_SEED + DEFAULT_UTF8_SEED,
+                 seed_tokens: Optional[List[str]] = None,
                  seed_token_logit: Optional[float] = 0.0,
                  skip_numbers: bool = True,
                  iterations: int = 10,
@@ -107,7 +106,7 @@ class TrainerConfig():
 
         self.vocab_size = vocab_size
         self.alphabet = alphabet
-        self.reserved_tokens = reserved_tokens
+        self.reserved_tokens = list(reserved_tokens) if reserved_tokens is not None else list(DEFAULT_RESERVED_TOKENS)
         self.escape_chars = escape_chars
         self.unk_token = unk_token
         self.spread_factor = spread_factor
@@ -115,7 +114,9 @@ class TrainerConfig():
         self.token_regex = token_regex
         self.discount_exponent = discount_exponent
         self.min_count = min_count
-        self.seed_tokens = seed_tokens or []
+        if seed_tokens is None:
+            seed_tokens = DEFAULT_NUMBER_SEED + DEFAULT_WS_SEED + DEFAULT_MARKUP_SEED + DEFAULT_UTF8_SEED
+        self.seed_tokens = list(seed_tokens)
         self.seed_token_logit = seed_token_logit
         self.skip_numbers = skip_numbers
         self.iterations = iterations
@@ -166,7 +167,11 @@ class Trainer():
         print("Building initial candidates")
         candidates = self.generate_candidates(words)
         candidates.update(self.protected_tokens)
-        prune_rate = 1 - (len(candidates) / self.config.vocab_size) ** (-1.0 / (self.config.iterations - 1))
+        if len(candidates) > self.config.vocab_size:
+            prune_rate = 1 - (len(candidates) / self.config.vocab_size) ** (-1.0 / (self.config.iterations - 1))
+        else:
+            # already at or below target — nothing to prune geometrically
+            prune_rate = 0.0
         
         final = False
         for it in range(self.config.iterations):
@@ -198,8 +203,8 @@ class Trainer():
                 else:
                     break
             prune_count = min(int(len(model.vocab) * prune_rate), len(model.vocab) - self.config.vocab_size)
-            if it == self.config.iterations - 2 or prune_count == 0:
-                prune_count = len(model.vocab) - self.config.vocab_size
+            if it == self.config.iterations - 2 or prune_count <= 0:
+                prune_count = max(0, len(model.vocab) - self.config.vocab_size)
                 final = True
             
             if prune_count > 0:
@@ -242,13 +247,17 @@ class Trainer():
                 count_by_langs = Counter({lang: sum(words_by_lang[lang].values()) for lang in words_by_lang})
                 _, dominant_count = count_by_langs.most_common(1)[0]
                 for lang, lang_words in words_by_lang.items():
-                    lang_factor = 1.0
                     lang_count = count_by_langs[lang]
+                    if lang_count <= 0:
+                        # nothing to upsample (and would divide by zero)
+                        continue
+                    lang_factor = 1.0
                     if lang_count < self.config.min_balance_langs * dominant_count:
                         lang_factor = self.config.min_balance_langs * dominant_count / lang_count
-                    print(f"Upsampling {lang} by factor {lang_factor}")
+                    if lang_factor != 1.0:
+                        print(f"Upsampling {lang} by factor {lang_factor}")
                     for word in lang_words:
-                        if word in self.config.reserved_tokens:
+                        if word in self.protected_tokens:
                             continue
                         words[word] += lang_words[word] * lang_factor # float is ok here
             else:
@@ -272,15 +281,16 @@ class Trainer():
         # get primary language for each word
         words = list(words.items())
         lang_by_words = [None] * len(words) # None means all languages
-        if self.config.tie_by_langs:
-            # get primary language for each word
+        if self.config.tie_by_langs and words_by_lang:
+            # get primary language for each word (only consider langs with positive counts)
             for i, (word, _) in enumerate(words):
                 lang_counts = Counter()
                 for lang in words_by_lang:
-                    lang_counts[lang] = words_by_lang[lang].get(word, 0)
-                if len(lang_counts) > 1:
-                    lang = lang_counts.most_common(1)[0][0]
-                    lang_by_words[i] = lang
+                    c = words_by_lang[lang].get(word, 0)
+                    if c > 0:
+                        lang_counts[lang] = c
+                if lang_counts:
+                    lang_by_words[i] = lang_counts.most_common(1)[0][0]
                 else:
                     lang_by_words[i] = None
                     
@@ -314,7 +324,7 @@ class Trainer():
                     if token_regex and not token_regex.match(token):
                         continue
                     candidates[token] += count
-        return set(t for t, _ in candidates.most_common(self.config.vocab_size * self.config.spread_factor))
+        return set(t for t, _ in candidates.most_common(int(self.config.vocab_size * self.config.spread_factor)))
     
     def step_E(self, model: Model, words: List[Tuple[str, float]], lang_by_words: List[Optional[str]]):
         return step_E(model, words, lang_by_words, self.config.workers, self.config.force_slow)
@@ -344,7 +354,7 @@ class Trainer():
 
     def finalize_model(self, model: Model):
         token_order = {v: i for i, v in enumerate(self.protected_tokens_list)}
-        vocab_order = {(token_order.get(v, 1000000 - model.vocab_logits[model.vocab_lookup[v]]), i) for i, v in enumerate(model.vocab)}
+        vocab_order = [(token_order.get(v, 1000000 - model.vocab_logits[model.vocab_lookup[v]]), i) for i, v in enumerate(model.vocab)]
         vocab_order = [i for _, i in sorted(vocab_order)]
         model.rearrange_vocab(vocab_order)
         model.vocab_logits[:len(self.config.reserved_tokens)] = 0.0
@@ -369,7 +379,8 @@ def step_E_single(model: Model, words: List[Tuple[str, float]], langs_by_words: 
         # force_slow to prevent building stem trie
         nll -= model.add_marginal(word, count, lang, m_vocab, m_rules, force_slow=force_slow)
         total_count += count
-    nll /= total_count
+    if total_count > 0:
+        nll /= total_count
     return nll, m_vocab, m_rules
     
 def step_E(model: Model, words: List[Tuple[str, float]], lang_by_words: List[Optional[str]], workers: int, force_slow: bool):
@@ -379,10 +390,8 @@ def step_E(model: Model, words: List[Tuple[str, float]], lang_by_words: List[Opt
     lang_chunks = chunk_list(lang_by_words, workers)
         
     with Pool(workers) as p:
-        results = [p.apply_async(step_E_single, (model, cw, cl, i==0, force_slow)) 
+        results = [p.apply_async(step_E_single, (model, cw, cl, i==0, force_slow))
                    for i, (cw, cl) in enumerate(zip(word_chunks, lang_chunks))]
-        while any(not r.ready() for r in results):
-            sleep(0.1)
 
         nll = 0.0
         total = 0
@@ -396,7 +405,8 @@ def step_E(model: Model, words: List[Tuple[str, float]], lang_by_words: List[Opt
             add_arrays(m_vocab, _m_vocab)
             add_arrays(m_rules, _m_rules)
 
-        nll /= total
+        if total > 0:
+            nll /= total
         return nll, m_vocab, m_rules
 
 def compute_losses_single(model: Model, words: List[Tuple[str, float]], lang_by_words: List[Optional[str]], show_progress: bool, force_slow: bool):
@@ -412,10 +422,8 @@ def compute_losses(model: Model, words: List[Tuple[str, float]], lang_by_words: 
     langs_chunks = chunk_list(lang_by_words, workers)
 
     with Pool(workers) as p:
-        results = [p.apply_async(compute_losses_single, (model, cw, cl, i==0, force_slow)) 
+        results = [p.apply_async(compute_losses_single, (model, cw, cl, i==0, force_slow))
                    for i, (cw, cl) in enumerate(zip(word_chunks, langs_chunks))]
-        while any(not r.ready() for r in results):
-            sleep(0.1)
 
         losses = [0.0] * len(model.vocab)
         for result in results:
@@ -428,9 +436,14 @@ def tie_single(model: Model, words: List[Tuple[str, float]], lang_by_words: List
     langs = model.langs
     langs_map = {l: i for i, l in enumerate(langs)}
     vocab_langs = [0] * len(model.vocab) # don't care about memory consumption here
+    all_langs_mask = (1 << len(langs)) - 1
     for (word, _), lang in tqdm(zip(words, lang_by_words), desc=f'tie by langs', total=len(words), disable=not show_progress):
         ids = model.encode(word, lang, force_slow=force_slow, eow_applied=True)
-        lang_mask = 1 << langs_map[lang] if lang else (1 << len(langs)) - 1
+        if lang and lang in langs_map:
+            lang_mask = 1 << langs_map[lang]
+        else:
+            # unknown lang or None → contribute to every language
+            lang_mask = all_langs_mask
         for v_id, _ in ids:
             vocab_langs[v_id] |= lang_mask
     return vocab_langs
@@ -442,10 +455,8 @@ def tie(model: Model, words: List[Tuple[str, float]], lang_by_words: List[Option
     langs_chunks = chunk_list(lang_by_words, workers)
 
     with Pool(workers) as p:
-        results = [p.apply_async(tie_single, (model, cw, cl, i==0, force_slow)) 
+        results = [p.apply_async(tie_single, (model, cw, cl, i==0, force_slow))
                    for i, (cw, cl) in enumerate(zip(word_chunks, langs_chunks))]
-        while any(not r.ready() for r in results):
-            sleep(0.1)
 
         vocab_langs = [0] * len(model.vocab)
         for result in results:
@@ -456,5 +467,6 @@ def tie(model: Model, words: List[Tuple[str, float]], lang_by_words: List[Option
 
 
 def add_arrays(a, b):
+    assert len(a) == len(b), f"add_arrays: length mismatch ({len(a)} vs {len(b)})"
     for i in range(len(a)):
         a[i] += b[i]

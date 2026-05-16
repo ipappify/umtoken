@@ -25,7 +25,10 @@ class Tokenizer():
         self.pre = pre
         self.model = model
         self.thumbprint = thumbprint
-        self.reserves_token_ids = frozenset(model.vocab_lookup[t] for t in pre.reserved_tokens)
+        # tolerate reserved tokens that aren't in the model's vocab (custom pre + off-the-shelf model)
+        self.reserved_token_ids = frozenset(
+            model.vocab_lookup[t] for t in pre.reserved_tokens if t in model.vocab_lookup
+        )
         
     def tokenize(self, 
                  text: str, 
@@ -55,8 +58,9 @@ class Tokenizer():
         """
         if is_split_and_escaped:
             assert return_ranges == False, "Ranges are not supported for split and escaped text."
+            assert isinstance(text, str), "is_split_and_escaped requires a string input"
             is_tuple = False
-            words = text.split(" ") if isinstance(text, str) else text
+            words = text.split(" ")
         else:
             is_tuple = True
             words, word_ranges = self.pre.split_and_escape(text, 
@@ -66,21 +70,20 @@ class Tokenizer():
                                                            return_as_tuple=True)
         tokens = []
         tokens_to_words = []
-        local_cache = local_cache or {}
+        if local_cache is None:
+            local_cache = {}
         for i, word in enumerate(words):
             try:
                 if not is_tuple:
                     # strip UP and SP from word
                     ws_id = 0 # 0: no space, 1: one space - other cases are handles by pre tokenizer
                     up_id = 0 # 0: lower case, 1: title case, 2: all upper case
-                    if len(word) > 1:
-                        ws_id = 1 if word[0] == SP and word[1] != SP else 0
-                        if ws_id:
-                            word = word[ws_id:]
-                        up_id = 1 if word[0] == UP else 0
-                        up_id += 1 if word[1] == UP else 0
-                        if up_id:
-                            word = word[up_id:]
+                    if word and word[0] == SP and len(word) > 1 and word[1] != SP:
+                        ws_id = 1
+                        word = word[1:]
+                    if word and word[0] == UP:
+                        up_id = 2 if len(word) > 1 and word[1] == UP else 1
+                        word = word[up_id:]
                 else:
                     word, ws_id, up_id = word
                         
@@ -150,7 +153,7 @@ class Tokenizer():
                 cur_new = False
 
             # reserved tokens are always EOW rules
-            res = v_id in self.reserves_token_ids
+            res = v_id in self.reserved_token_ids
             eow = self.model.is_eow_rule[r_id] or res
             cur_tokens.append((v_id, r_id))
             tokens_to_words.append(len(words))
@@ -165,7 +168,9 @@ class Tokenizer():
                         word = self.model.decode(cur_tokens[:-1])
                         word = self.pre.unescape((word, cur_ws, cur_up))
                         words.append(word)
-                        # set reserved token to be the next word
+                        # set reserved token to be the next word.
+                        # only the last entry of tokens_to_words needs patching here because
+                        # reserved tokens are always single-sub-token (res ⇒ eow on the same step).
                         cur_tokens = cur_tokens[-1:]
                         tokens_to_words[-1] = len(words)
                     if omit_reserved:
@@ -181,13 +186,12 @@ class Tokenizer():
                 cur_new = True
 
         if len(cur_tokens) > 0:
+            # any reserved token would have triggered the eow branch above (res ⇒ eow),
+            # so anything reaching here is a non-reserved trailing word without an EOW rule
             word = self.model.decode(cur_tokens)
-            if omit_reserved and word in self.pre.reserved_tokens:
-                words.append("")
-            else:
-                word = SP * cur_ws + UP * cur_up + word
-                word = self.pre.unescape(word)
-                words.append(word)
+            word = SP * cur_ws + UP * cur_up + word
+            word = self.pre.unescape(word)
+            words.append(word)
 
         text = "".join(words)
         if not return_ranges:
