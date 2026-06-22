@@ -1,6 +1,6 @@
 # Path: umtoken/pre.py
 
-from typing import Iterable, List, Literal, Optional, Tuple, Union
+from typing import Callable, Iterable, List, Literal, Optional, Tuple, Union
 import regex as re
 import unicodedata
 
@@ -118,7 +118,9 @@ class PreTokenizer:
             else:
                 self._clean_regex = None            
     
-    def split(self, text: str, handle_reserved: bool = False, allowed_reserved: Optional[list[str]] = None) -> List[str]:
+    def split(self, text: str, 
+              handle_reserved: bool = False, allowed_reserved: Optional[list[str]] = None,
+              split_compound_func: Optional[Callable] = None) -> List[str]:
         """
         Splits the text into words.
         
@@ -126,6 +128,8 @@ class PreTokenizer:
             text: The text to split.
             handle_reserved: Whether to handle reserved tokens. If True, reserved tokens are not split and escaped.
             allowed_reserved: Restrict allowed reserved tokens to this list, if provided.
+            split_compound_func: Callable that splits a word into one or more parts (str->list[str]).
+                                 The callable is responsible for maintaining case and appending soft hyphens to mods if necessary.   
             
         Returns:
             The list of words.
@@ -166,6 +170,18 @@ class PreTokenizer:
                 else:
                     new_words.append(w)
             words = new_words
+
+        # split compound words into parts; reserved tokens are never split
+        if split_compound_func is not None:
+            reserved = self.reserved_tokens if handle_reserved else frozenset()
+            split_words = []
+            for w in words:
+                if w in reserved:
+                    split_words.append(w)
+                else:
+                    split_words.extend(split_compound_func(w))
+            words = split_words
+
         return words
         
     def normalize(self, text: str, return_offsets: bool = False):
@@ -287,7 +303,8 @@ class PreTokenizer:
                          handle_reserved: bool = False,
                          allowed_reserved: Optional[list[str]] = None,
                          return_ranges: bool = False,
-                         return_as_tuple: bool = False) -> Union[List[str], Tuple[List[str], List[Tuple[int, int]]]]:
+                         return_as_tuple: bool = False,
+                         split_compound_func: Optional[Callable] = None) -> Union[List[str], Tuple[List[str], List[Tuple[int, int]]]]:
         """
         Splits the text into words, normalizes, and escapes them.
 
@@ -297,6 +314,9 @@ class PreTokenizer:
             allowed_reserved: Restrict allowed reserved tokens to this list, if provided.
             return_ranges: Whether to return the ranges (offset, length) of each word as positions in the *original* text (before normalization and escaping).
             return_as_tuple: Whether to return the escaped words as tuples (escaped word, whitespace, uppercase).
+            split_compound_func: Callable that splits a word into one or more parts (str->list[str]).
+                                 The callable is responsible for maintaining case and appending soft hyphens to mods if necessary.
+                                 When return_ranges is True, each part's range is derived from the original word's span.
 
         Returns:
             If return_ranges is False, the list of escaped words.
@@ -304,7 +324,7 @@ class PreTokenizer:
         """
         # SHY removal in 'remove' mode is handled by normalize() inside split(); no need to pre-strip here.
         if not return_ranges:
-            words = self.split(text, handle_reserved, allowed_reserved)
+            words = self.split(text, handle_reserved, allowed_reserved, split_compound_func=split_compound_func)
             words = [self.escape(word,
                                  handle_reserved=handle_reserved,
                                  allowed_reserved=allowed_reserved,
@@ -334,6 +354,18 @@ class PreTokenizer:
                 else:
                     merged.append((w, ns, ne))
             word_spans = merged
+
+        # split compound words into parts, partitioning each word's normalized
+        # span among the parts; reserved tokens are never split
+        if split_compound_func is not None:
+            reserved = self.reserved_tokens if handle_reserved else frozenset()
+            split_spans: List[Tuple[str, int, int]] = []
+            for w, ns, ne in word_spans:
+                if w in reserved:
+                    split_spans.append((w, ns, ne))
+                else:
+                    split_spans.extend(self._assign_compound_ranges(split_compound_func(w), w, ns, ne))
+            word_spans = split_spans
 
         escaped = [self.escape(w,
                                handle_reserved=handle_reserved,
@@ -370,8 +402,31 @@ class PreTokenizer:
         else:
             for sm in self.split_regex.finditer(text):
                 yield sm.group(1), sm.start(1), sm.end(1)
-    
-    def unescape(self, 
+
+    def _assign_compound_ranges(self, parts: List[str], word: str,
+                                ns: int, ne: int) -> List[Tuple[str, int, int]]:
+        """Partition the normalized span ``[ns, ne)`` of ``word`` among compound
+        ``parts``. Each part is aligned char-by-char against ``word`` (parts
+        preserve the source characters and case); a part character that does not
+        match the next source character - e.g. an appended soft hyphen - is
+        treated as a zero-width insertion and does not advance the source
+        position. The returned spans contiguously cover ``[ns, ne)``; the final
+        part absorbs any unaligned remainder so coverage is preserved."""
+        spans: List[Tuple[str, int, int]] = []
+        i = 0
+        last = len(parts) - 1
+        for k, part in enumerate(parts):
+            start = ns + i
+            if k == last:
+                spans.append((part, start, ne))
+            else:
+                for ch in part:
+                    if i < len(word) and ch == word[i]:
+                        i += 1
+                spans.append((part, start, ns + i))
+        return spans
+
+    def unescape(self,
                  escaped: Union[str, Tuple[str,int,int]],
                  handle_reserved: bool = False,) -> str:
         """

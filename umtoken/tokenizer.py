@@ -1,7 +1,7 @@
 # Path: umtoken/tokenizer.py
 
 import json
-from typing import List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 from warnings import warn
 
 from .alphabet import ASCII_ENCODING_SPACE as SP, ASCII_RESERVED_UPPER as UP
@@ -38,7 +38,8 @@ class Tokenizer():
                  merge_prop_ids: bool = True,
                  return_ranges: bool = False,
                  force_slow: bool = False,
-                 local_cache: Optional[dict] = None):
+                 local_cache: Optional[dict] = None,
+                 split_compound_func: Optional[Callable] = None):
         """
         Tokenizes text into tuples of token ids.
         
@@ -51,6 +52,8 @@ class Tokenizer():
             return_ranges: Whether to return the ranges of the words (offset, length).
             force_slow: Whether to force slow decomposition. This avoids building a stem trie and is useful when only a few words need to be encoded.
             local_cache: A local cache for storing token ids.
+            split_compound_func: Callable that splits a word into one or more parts (str->list[str]).
+                                 The callable is responsible for maintaining case and appending soft hyphens to mods if necessary.
 
         Returns:
             If return_ranges is False, the list of token ids (tuples). Tuples are either: (vocab_id, aux_id) or (vocab_id, rule_id, case_id, space_id)
@@ -67,7 +70,8 @@ class Tokenizer():
                                                            handle_reserved=handle_reserved,
                                                            allowed_reserved=allowed_reserved,
                                                            return_ranges=True,
-                                                           return_as_tuple=True)
+                                                           return_as_tuple=True,
+                                                           split_compound_func=split_compound_func)
         tokens = []
         tokens_to_words = []
         if local_cache is None:
