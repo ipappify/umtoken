@@ -18,6 +18,7 @@ from .nl import NL_RULES
 from .pl import PL_RULES
 from .pt import PT_RULES
 from .ro import RO_RULES
+from .sk import SK_RULES
 from .sv import SV_RULES
 
 RULES_BY_LANGS = {
@@ -36,6 +37,7 @@ RULES_BY_LANGS = {
     "pl": PL_RULES,
     "pt": PT_RULES,
     "ro": RO_RULES,
+    "sk": SK_RULES,
     "sv": SV_RULES,
 }
 
