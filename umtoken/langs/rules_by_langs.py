@@ -11,6 +11,7 @@ from .el import EL_RULES
 from .en import EN_RULES
 from .es import ES_RULES
 from .fr import FR_RULES
+from .hr import HR_RULES
 from .hu import HU_RULES
 from .it import IT_RULES
 from .nl import NL_RULES
@@ -28,6 +29,7 @@ RULES_BY_LANGS = {
     "en": EN_RULES,
     "es": ES_RULES,
     "fr": FR_RULES,
+    "hr": HR_RULES,
     "hu": HU_RULES,
     "it": IT_RULES,
     "nl": NL_RULES,
