@@ -16,6 +16,8 @@ from .fr import FR_RULES
 from .hr import HR_RULES
 from .hu import HU_RULES
 from .it import IT_RULES
+from .lt import LT_RULES
+from .lv import LV_RULES
 from .nl import NL_RULES
 from .pl import PL_RULES
 from .pt import PT_RULES
@@ -38,6 +40,8 @@ RULES_BY_LANGS = {
     "hr": HR_RULES,
     "hu": HU_RULES,
     "it": IT_RULES,
+    "lt": LT_RULES,
+    "lv": LV_RULES,
     "nl": NL_RULES,
     "pl": PL_RULES,
     "pt": PT_RULES,
