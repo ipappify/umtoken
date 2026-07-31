@@ -81,7 +81,7 @@ ablative:      ka[tt->t]o-lta
 allative:      kau[pp->p]a-lle
 translative:   ka[tt->t]o-ksi
 ``` python
-op=RegexOp(r'([kpt])\1([aouäöy])$', r'\1\2', r'([aeiouäöy])([kpt])([aouäöy])$', r'\1\2\2\3')
+op=RegexOp(r'([aeiouäöy])([kpt])\2([aouäöy])$', r'\1\2\3', r'([aeiouäöy])([kpt])([aouäöy])$', r'\1\2\2\3')
 ```
 
 ### weak grade (t -> d)

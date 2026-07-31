@@ -22,14 +22,14 @@ SPLIT_REGEX = r'( ?(?:[\p{Ll}\p{Lo}\p{Lm}]+|(?:\p{Lu}\p{Ll}|\p{Lt})[\p{Ll}\p{Lo}
 
 PAD_TOKEN = "[PAD]" # padding token
 UNK_TOKEN = "[UNK]" # unknown token (should never happen because we escape all text - also used if something goes wrong in model.encode)
-SOT_TOKEN = "[SOT]" # start of text token
+BOT_TOKEN = "[BOT]" # beginning of text token
 EOT_TOKEN = "[EOT]" # end of text token
 MSK_TOKEN = "[MSK]" # mask token
 CLS_TOKEN = "[CLS]" # classification token
 RSV_TOKEN = "[RSV{i:03d}]" # reserved tokens
 
 
-DEFAULT_RESERVED_TOKENS = ([PAD_TOKEN, UNK_TOKEN, SOT_TOKEN, EOT_TOKEN, MSK_TOKEN, CLS_TOKEN] + 
+DEFAULT_RESERVED_TOKENS = ([PAD_TOKEN, UNK_TOKEN, BOT_TOKEN, EOT_TOKEN, MSK_TOKEN, CLS_TOKEN] + 
                            [f"{RSV_TOKEN.format(i=i)}" for i in range(26)])
 
 _ws_or_control_regex = re.compile(r'\p{Z}(?<! )|\p{Cc}(?<![\t\n])', re.UNICODE)

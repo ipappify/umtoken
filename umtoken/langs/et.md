@@ -72,7 +72,7 @@ constraint_regex='[^s]$'
 * other gradation patterns (b -> v, g -> /, d -> /, ...) are not covered
 genitive: sep[pp->p]-a kot[tt->t]-i luk[kk->k]-u
 ``` python
-op=RegexOp(r'([kpt])\1$', r'\1', r'([aeiouõäöü])([kpt])$', r'\1\2\2')
+op=RegexOp(r'([aeiouõäöü])([kpt])\2$', r'\1\2', r'([aeiouõäöü])([kpt])$', r'\1\2\2')
 ```
 
 ## verbs

@@ -52,6 +52,7 @@ class TrainerConfig():
                  alphabet: str = EU3_ALPHABET,
                  escape_chars: str = ASCII_ENCODING,
                  reserved_tokens: Optional[List[str]] = None,
+                 additional_reserved_tokens: Optional[List[str]] = None,
                  unk_token: str = UNK_TOKEN,
                  spread_factor: float = 16,
                  max_token_length: int = 12,
@@ -77,7 +78,8 @@ class TrainerConfig():
             vocab_size: The size of the vocabulary.
             alphabet: The alphabet to use.
             escape_chars: The escape characters.
-            reserved_tokens: The reserved tokens.
+            reserved_tokens: The reserved tokens (replaces the defaults if provided).
+            additional_reserved_tokens: Further reserved tokens to append after the reserved tokens.
             unk_token: The unknown token.
             spread_factor: The spread factor for the candidate generation.
             max_token_length: The maximum length of a token.
@@ -107,6 +109,8 @@ class TrainerConfig():
         self.vocab_size = vocab_size
         self.alphabet = alphabet
         self.reserved_tokens = list(reserved_tokens) if reserved_tokens is not None else list(DEFAULT_RESERVED_TOKENS)
+        if additional_reserved_tokens:
+            self.reserved_tokens += list(additional_reserved_tokens)
         self.escape_chars = escape_chars
         self.unk_token = unk_token
         self.spread_factor = spread_factor

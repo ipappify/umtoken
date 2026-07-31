@@ -10,6 +10,6 @@ ET_RULES = (DEFAULT_RULES +
             suffix_rules(_lang, ['sti'], constraint_regex='[^s]$') +
             suffix_rules(_lang, ['s','sid','sse','st'], constraint_regex='[^s]$') +
             suffix_rules(_lang, ['ne','se','sed','si','st','ste'], constraint_regex='[^s]$') +
-            suffix_rules(_lang, ['a','i','u'], op=RegexOp(r'([kpt])\1$', r'\1', r'([aeiouõäöü])([kpt])$', r'\1\2\2')) +
+            suffix_rules(_lang, ['a','i','u'], op=RegexOp(r'([aeiouõäöü])([kpt])\2$', r'\1\2', r'([aeiouõäöü])([kpt])$', r'\1\2\2')) +
             suffix_rules(_lang, ['s','sid','sime','sin','site'], constraint_regex='[^s]$') +
             [])
