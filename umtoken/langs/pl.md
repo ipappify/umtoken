@@ -76,6 +76,19 @@ common: bia[ł->l]-i
 op=RegexOp(r'ł$', r'l', r'l$', r'ł')
 ```
 
+### comparison
+comparative: star-szy star-sza star-sze star-si
+             ładn-iejszy ładn-iejsza ładn-iejsze
+adverbs:     szybc-iej
+
+### superlative (naj- prefix)
+superlative: [->naj]star-szy [->naj]star-sza [->naj]star-sze [->naj]star-si
+             [->naj]ładn-iejszy [->naj]ładn-iejsza [->naj]ładn-iejsze
+adverbs:     [->naj]szybc-iej
+``` python
+op=RegexOp(r'^', r'naj', r'^naj', r'')
+```
+
 ### adjective > adverb
 common: szybk-o
         łagodn-ie
@@ -95,7 +108,7 @@ nom: skaz-a skaz-y
 gen: skaz-y skaz-/
      skrob-ii skrob-ii
      chem-ii chem-ii
-     wios-y wios-en
+     wiosn-y wios-en
      długośc-i długośc-i
 dat: skaz-ie skaz-om
      skrob-ii skrob-iom
@@ -121,6 +134,7 @@ voc: skaz-o skaz-y
 ### m nouns:
 nom: dom-/ dom-y
      gość-/ gośc-ie
+     pan-owie profesor-owie
 gen: dom-u dom-ów
      gośc-ia gośc-i
 dat: dom-owi dom-om
@@ -128,11 +142,11 @@ dat: dom-owi dom-om
 acc: dom-/ dom-y
      gośc-ia gośc-i
 ins: dom-em dom-ami
-     gośc-iem gośc-mi
+     gośc-iem gość-mi
 loc: dom-u dom-ie dom-ach
      gośc-iu gośc-iach
 voc: dom-u dom-ie dom-y
-     gośc-iu gośc-ie        
+     gośc-iu gośc-ie
 
 ### n nouns:
 nom: okn-o okn-a
@@ -151,6 +165,7 @@ voc: okn-o okn-a
      morz-e morz-a
 
 ## verbs
+* 1st/2nd-person neuter past forms (kochałom, kochałoś, ...) are theoretical and excluded (parenthesized)
 
 ### -ać verbs
 infinitive: koch-ać
@@ -161,8 +176,10 @@ past part:  koch-any koch-ana koch-ane koch-ani koch-ane
 indicative, present:   koch-am koch-asz koch-a koch-amy koch-acie koch-ają
 indicative, imperfect: koch-ał koch-ała koch-ało koch-ali koch-ały
                        koch-ano
-                       koch-ałem koch-ałam koch-ałom koch-aliśmy koch-ałyśmy
-                       koch-ałeś koch-ałaś koch-ałoś koch-aliście koch-ałyście
+                       koch-ałem koch-ałam (koch-ałom) koch-aliśmy koch-ałyśmy
+                       koch-ałeś koch-ałaś (koch-ałoś) koch-aliście koch-ałyście
+conditional: koch-ałby koch-ałaby koch-ałoby koch-aliby koch-ałyby
+imperative:  koch-aj koch-ajmy koch-ajcie
 
 ### -ić verbs
 infinitive: widz-ieć
@@ -175,12 +192,14 @@ past part:  widz-iany widz-iana widz-iane widz-iani widz-iane
 indicative, present:   widz-ę widz-isz widz-i widz-imy widz-icie widz-ą
 indicative, imperfect: widz-iał widz-iała widz-iało widz-ieli widz-iały
                        widz-iano
-                       widz-iałem widz-iałam widz-iałom widz-ieliśmy widz-iałyśmy
-                       widz-iałeś widz-iałaś widz-iałoś widz-ieliście widz-iałyście
+                       widz-iałem widz-iałam (widz-iałom) widz-ieliśmy widz-iałyśmy
+                       widz-iałeś widz-iałaś (widz-iałoś) widz-ieliście widz-iałyście
                        pal-ił pal-iła pal-iło pal-ili pal-iły
                        pal-ono
-                       pal-iłem pal-iłam pal-iłom pal-iliśmy pal-iłyśmy
-                       pal-iłeś pal-iłaś pal-iłoś pal-iliście pal-iłyście
+                       pal-iłem pal-iłam (pal-iłom) pal-iliśmy pal-iłyśmy
+                       pal-iłeś pal-iłaś (pal-iłoś) pal-iliście pal-iłyście
+conditional: widz-iałby widz-iałaby widz-iałoby widz-ieliby widz-iałyby
+             pal-iłby pal-iłaby pal-iłoby pal-iliby pal-iłyby
 
 ### -ować verbs
 infinitive: mal-ować
@@ -191,5 +210,25 @@ past part:  mal-owany mal-owana mal-owane mal-owani mal-owane
 indicative, present:   mal-uję mal-ujesz mal-uje mal-ujemy mal-ujecie mal-ują
 indicative, imperfect: mal-ował mal-owała mal-owało mal-owali mal-owały
                        mal-owano
-                       mal-owałem mal-owałam mal-owałom mal-owaliśmy mal-owałyśmy
-                       mal-owałeś mal-owałaś mal-owałoś mal-owaliście mal-owałyście
+                       mal-owałem mal-owałam (mal-owałom) mal-owaliśmy mal-owałyśmy
+                       mal-owałeś mal-owałaś (mal-owałoś) mal-owaliście mal-owałyście
+conditional: mal-owałby mal-owałaby mal-owałoby mal-owaliby mal-owałyby
+imperative:  mal-uj mal-ujmy mal-ujcie
+
+### -nąć verbs
+infinitive: ciąg-nąć
+ADV:        ciąg-nąc
+N:          ciąg-nięcie
+past part:  ciąg-nięty ciąg-nięta ciąg-nięte ciąg-nięci ciąg-nięte
+indicative, present:   ciąg-nę ciąg-niesz ciąg-nie ciąg-niemy ciąg-niecie ciąg-ną
+indicative, imperfect: ciąg-nął ciąg-nęła ciąg-nęło ciąg-nęli ciąg-nęły
+                       ciąg-nięto
+imperative: ciąg-nij ciąg-nijmy ciąg-nijcie
+
+## derivation
+V>N:   słuch-acz słuch-acza słuch-acze słuch-aczy
+V>ADJ: wykon-alny wykon-alna wykon-alne
+ADJ>N: szybk-ość szybk-ości szybk-ością szybk-ościom szybk-ościach szybk-ościami
+N>ADJ: sport-owy sport-owa sport-owe sport-owego sport-owej sport-owemu sport-owym sport-owych sport-owymi sport-ową
+       pol-ski pol-ska pol-skie pol-skiego pol-skiej pol-skiemu pol-skim pol-skich pol-skimi pol-ską pol-scy
+N>N:   nauczyciel-ka nauczyciel-ki nauczyciel-ce nauczyciel-kę nauczyciel-ką nauczyciel-ek nauczyciel-kom nauczyciel-kach nauczyciel-kami

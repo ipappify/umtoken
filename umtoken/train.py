@@ -39,7 +39,8 @@ def main(args):
         iterations=args.iterations,
         alphabet=alphabet,
         min_balance_langs=args.min_balance_langs,
-        min_base_len=args.min_base_len,        
+        min_base_len=args.min_base_len,
+        additional_reserved_tokens=args.reserved_token,
         force_slow=args.allow_unconditional_ops # building the stem trie may take a long time when there are unconditional ops
     )
     trainer = Trainer(config)
@@ -251,6 +252,11 @@ if __name__ == '__main__':
                         type=int,
                         help="number of workers; 0 = as many as cpus (default: 0)")
     
+    parser.add_argument("-rt", "--reserved-token",
+                        nargs="+",
+                        default=[],
+                        help="further reserved tokens to add on top of the defaults (default: none)")
+
     parser.add_argument("-its", "--iterations",
                         default=10,
                         type=int,

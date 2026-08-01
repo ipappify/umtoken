@@ -43,7 +43,7 @@ def replace_continue_char(w, cc):
 def main(args):
     assert len(args.input_file) > 0, "No input files specified."
 
-    tokenizer = Tokenizer.load(args.tokenizer_file, pre={"preserve_soft_hyphen": "append" if args.continue_char else None})
+    tokenizer = Tokenizer.load(args.tokenizer_file, pre={"preserve_soft_hyphen": "append" if args.continue_char else False})
     need_ids = args.output_tokenized_file or args.output_formatted_file
     workers = args.workers
     if workers <= 0:

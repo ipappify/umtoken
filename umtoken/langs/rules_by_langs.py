@@ -10,13 +10,22 @@ from .de import DE_RULES
 from .el import EL_RULES
 from .en import EN_RULES
 from .es import ES_RULES
+from .et import ET_RULES
+from .fi import FI_RULES
 from .fr import FR_RULES
+from .ga import GA_RULES
+from .hr import HR_RULES
 from .hu import HU_RULES
 from .it import IT_RULES
+from .lt import LT_RULES
+from .lv import LV_RULES
+from .mt import MT_RULES
 from .nl import NL_RULES
 from .pl import PL_RULES
 from .pt import PT_RULES
 from .ro import RO_RULES
+from .sk import SK_RULES
+from .sl import SL_RULES
 from .sv import SV_RULES
 
 RULES_BY_LANGS = {
@@ -27,13 +36,22 @@ RULES_BY_LANGS = {
     "el": EL_RULES,
     "en": EN_RULES,
     "es": ES_RULES,
+    "et": ET_RULES,
+    "fi": FI_RULES,
     "fr": FR_RULES,
+    "ga": GA_RULES,
+    "hr": HR_RULES,
     "hu": HU_RULES,
     "it": IT_RULES,
+    "lt": LT_RULES,
+    "lv": LV_RULES,
+    "mt": MT_RULES,
     "nl": NL_RULES,
     "pl": PL_RULES,
     "pt": PT_RULES,
     "ro": RO_RULES,
+    "sk": SK_RULES,
+    "sl": SL_RULES,
     "sv": SV_RULES,
 }
 

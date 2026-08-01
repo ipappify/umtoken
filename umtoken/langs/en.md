@@ -19,12 +19,14 @@ gerund:     lov-ing
 V>N:        lov-er lov-ers execut-able execut-ables feel-ing feel-ings
 V>ADJ:      lov-able sens-ible
 V>ADV:      lov-ably sens-ibly
-past part:  lov-ed (free-d|fre-ed)
+past part:  lov-ed tak-en giv-en (free-d|fre-ed)
 indicative, present:   complet-e complet-es say-s
 indicative, imperfect: complet-ed
 
-### verbs ending with -y
+### words ending with -y
 past part:  stud[y->i]-ed
+superlative: happ[y->i]-est eas[y->i]-est
+ADJ>ADV:    happ[y->i]-ly eas[y->i]-ly
 V>N:        dr[y->i]-er dr[y->i]-ers
 indicative, present:   stud[y->i]-es
 indicative, imperfect: stud[y->i]-ed
@@ -32,7 +34,9 @@ indicative, imperfect: stud[y->i]-ed
 op=RegexOp(r'y$', r'i', r'i$', r'y')
 ```
 
-### verbs ending with b d f g k l m n p r s t
+### words ending with b d f g k l m n p r s t
+past part:   sto[p->pp]-ed writ[t->tt]-en
+superlative: bi[g->gg]-est
 gerund:    ru[n->nn]-ing ru[n->nn]-ings
 V>N:       ru[n->nn]-er ru[n->nn]-ers
 V>ADJ:     control[l->ll]-able control[l->ll]-ables
@@ -40,4 +44,9 @@ V>ADV:     control[l->ll]-ably
 ``` python
 op=RegexOp(r'([bdfgklmnprst])$', r'\1\1', r'([bdfgklmnprst])\1$', r'\1')
 ```
+
+## derivation
+ADJ>N: dark-ness activ-ity activ-ities
+V>N:   develop-ment develop-ments
+N>ADJ: use-ful power-ful
 

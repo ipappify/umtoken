@@ -42,6 +42,17 @@ vocative:     jarn-í
 locative:     jarn-ích
 instrumental: jarn-ími
 
+### comparison
+comparative: mlad-ší rychl-ejší zajímav-ější
+adverbs:     rychl-eji siln-ěji
+
+### superlative (nej- prefix)
+superlative: [->nej]mlad-ší [->nej]rychl-ejší [->nej]zajímav-ější
+adverbs:     [->nej]rychl-eji [->nej]siln-ěji
+``` python
+op=RegexOp(r'^', r'nej', r'^nej', r'')
+```
+
 ### possessive
 
 **singular**
@@ -93,11 +104,11 @@ vocative:     pan-e kluk-u manžel-i muž-i otč-e soudc-e předsed-o mluvč-í
 locative:     pán-ovi pán-u muž-ovi muž-i soudc-ovi soudc-i předsed-ovi mluvč-ím
 instrumental: pán-em muž-em kon-ěm soudc-em předsed-ou mluvč-ím
 **plural**
-nominative:   pán-ové pán-i host-i host-é manžel-é manžel-ové muž-ové muž-i kon-ě učitel-é soudc-ové soudc-i předsed-ové turist-é cyklist-é cyklist-i mluvč-í
+nominative:   pán-ové pán-i host-i host-é manžel-é manžel-ové muž-ové muž-i kon-ě učitel-é soudc-ové soudc-i předsed-ové turist-é cyklist-é (cyklist-i) mluvč-í
 genitive:     pán-ů muž-ů kon-í koň-ů soudc-ů předsed-ů mluvč-ích
 dative:       pán-ům muž-ům kon-ím koň-ům soudc-ům předsed-ům mluvč-ím
 accusative:   pán-y manžel-e manžel-y muž-e kon-ě soudc-e předsed-y mluvč-í
-vocative:     pán-ové pán-i host-i host-é manžel-é manžel-ové muž-ové muž-i kon-ě učitel-é soudc-i soudc-ové předsed-ové turist-é cyklist-é cyklist-i mluvč-í
+vocative:     pán-ové pán-i host-i host-é manžel-é manžel-ové muž-ové muž-i kon-ě učitel-é soudc-i soudc-ové předsed-ové turist-é cyklist-é (cyklist-i) mluvč-í
 locative:     pán-ech kluc-ích manžel-ech manžel-ích muž-ích soudc-ích předsed-ech kolez-ích mluvč-ích
 instrumental: pán-y manžel-i manžel-y muž-i kon-i koň-mi soudc-i předsed-y mluvč-ími
 
@@ -123,17 +134,17 @@ instrumental: hrad-y stroj-i
 ### feminine
 
 **singular**
-nominative:   žen-a růž-e pís-eň kost-
+nominative:   žen-a růž-e pís-eň kost-/
 genitive:     žen-y růž-e pís-ně postel-e kost-i
 dative:       žen-ě škol-e růž-i pís-ni kost-i
-accusative:   žen-u růž-i pís-eň kost-
+accusative:   žen-u růž-i pís-eň kost-/
 vocative:     žen-o růž-e pís-ni kost-i
 locative:     žen-ě škol-e růž-i pís-ni kost-i
 instrumental: žen-ou růž-í pís-ní kost-í
 
 **plural**
 nominative:   žen-y růž-e pís-ně postel-e kost-i
-genitive:     žen- hus- hus-í růž-í pís-ní kost-í
+genitive:     žen-/ hus-/ růž-í pís-ní kost-í
 dative:       žen-ám růž-ím pís-ním kost-em vs-ím
 accusative:   žen-y růž-e pís-ně postel-e kost-i
 vocative:     žen-y růž-e pís-ně postel-e kost-i
@@ -153,7 +164,7 @@ instrumental: měst-em moř-em kuř-etem staven-ím
 
 **plural**
 nominative:   měst-a moř-e kuř-ata staven-í
-genitive:     měst- moř-í kuř-at staven-í
+genitive:     měst-/ moř-í kuř-at staven-í
 dative:       měst-ům moř-ím kuř-atům staven-ím
 accusative:   měst-a moř-e kuř-ata staven-í
 vocative:     měst-a moř-e kuř-ata staven-í
@@ -161,32 +172,38 @@ locative:     měst-ech jablk-ách (jablc-ích) moř-ích kuř-atech staven-ích
 instrumental: měst-y moř-i kuř-aty staven-ími
 
 ## verbs
+* present transgressives are archaic/literary in modern Czech and excluded (parenthesized)
 
 ### class i (pres)
 pres. ind:    nes-u nes-eme nes-eš nes-ete nes-e nes-ou
-pres. trans:  nes-a nes-ouc nes-ouce
+pres. trans:  (nes-a) (nes-ouc) (nes-ouce)
 
 ### class ii (pres)
 pres. ind:    tisk-nu tisk-neme tisk-neš tisk-nete tisk-ne tisk-nou
-pres. trans:  tisk-na tisk-nouc tisk-nouce
+pres. trans:  (tisk-na) (tisk-nouc) (tisk-nouce)
 
 ### class iii (pres)
 pres. ind:    kry-ji kry-jeme kry-ješ kry-jete kry-je kry-jí
-pres. trans:  kry-je kry-jíc kry-jíce
+pres. trans:  (kry-je) (kry-jíc) (kry-jíce)
 
 ### class iv (pres)
 pres. ind:    pros-ím pros-íme pros-íš pros-íte pros-í pros-í
-pres. trans:  pros-e pros-íc pros-íce
+pres. trans:  (pros-e) (pros-íc) (pros-íce)
 
 ### class v (pres)
 pres. ind:    děl-ám děl-áme děl-áš děl-áte děl-á děl-ají
-pres. trans:  děl-aje děl-ajíc děl-ajíce
+pres. trans:  (děl-aje) (děl-ajíc) (děl-ajíce)
+
+### class vi (pres)
+pres. ind:    kup-uji kup-ujeme kup-uješ kup-ujete kup-uje kup-ují
+              (kup-uju) (kup-ujou)
 
 ### class i (inf)
-inf:          nés-t péc-i
+* péci is the archaic infinitive of péct
+inf:          nés-t (péc-i)
 act adj:      nes-oucí pek-oucí peč-ící
 pass adj:     peč-ený
-noun:         peč-ení 
+noun:         peč-ení
 past part:    nes-l nes-la nes-lo nes-li nes-ly nes-la
 pass part:    nes-en nes-ena nes-eno nes-eni nes-eny nes-ena
 
@@ -195,7 +212,7 @@ inf:          tisk-nout
 act adj:      tisk-noucí
 pass adj:     tisk-nutý tišt-ěný
 noun:         tisk-nutí tišt-ění
-past part:    tisk-l tisk-la  tisk-lo tisk-li tisk-ly tisk-la 	
+past part:    tisk-l tisk-la tisk-lo tisk-li tisk-ly tisk-la
               tisk-nul tisk-nula tisk-nulo tisk-nuli tisk-nuly tisk-nula
 pass part:    tišt-ěn tišt-ěna tišt-ěno tišt-ěni tišt-ěny tišt-ěna
               tisk-nut tisk-nuta tisk-nuto tisk-nuti tisk-nuty tisk-nuta
@@ -203,8 +220,8 @@ pass part:    tišt-ěn tišt-ěna tišt-ěno tišt-ěni tišt-ěny tišt-ěna
 ### class iii (inf)
 inf:          slyš-et
 act adj:      slyš-ící
-pass adj:     tisk-nutý tišt-ěný
-noun:         tisk-nutí tišt-ění
+pass adj:     slyš-ený
+noun:         slyš-ení
 past part:    slyš-el slyš-ela slyš-elo slyš-eli slyš-ely slyš-ela
 pass part:    slyš-en slyš-ena slyš-eno slyš-eni slyš-eny slyš-ena
 
@@ -231,3 +248,17 @@ pass adj:     kup-ovaný
 noun:         kup-ování
 past part:    kup-oval kup-ovala kup-ovalo kup-ovali kup-ovaly kup-ovala
 pass part:    kup-ován kup-ována kup-ováno kup-ováni kup-ovány kup-ována
+
+### imperative
+class ii:     tisk-ni tisk-něme tisk-něte
+class iii:    kry-j kry-jme kry-jte
+class v:      děl-ej děl-ejme děl-ejte
+class vi:     kup-uj kup-ujme kup-ujte
+
+## derivation
+V>N:   stavi-tel stavi-tele stavi-telé stavi-telů stavi-telům
+V>ADJ: použi-telný použi-telná použi-telné
+ADJ>N: rychl-ost rychl-osti rychl-ostí rychl-ostem rychl-ostech rychl-ostmi
+N>ADJ: motor-ový motor-ová motor-ového motor-ovému motor-ovém
+       praž-ský praž-ská praž-ské praž-ského praž-skému praž-ském praž-skou praž-ští praž-ských praž-ským praž-skými
+N>N:   učitel-ka učitel-ky učitel-ce učitel-ku učitel-kou učitel-ek učitel-kám učitel-kách učitel-kami

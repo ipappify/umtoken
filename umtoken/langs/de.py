@@ -8,6 +8,7 @@ _lang = 'de'
 DE_RULES = (DEFAULT_RULES + 
             suffix_rules(_lang, ['e','em','en','ene','enem','enen','ener','enes','ens','er','ern','es'], constraint_regex='[^e]$') +
             suffix_rules(_lang, ['s'], constraint_regex='([^es]|ee)$') +
+            suffix_rules(_lang, ['bar','bare','barem','baren','barer','bares']) +
             suffix_rules(_lang, ['nen'], constraint_regex='in$') +
             suffix_rules(_lang, ['e','en','st','t','te','tem','ten','ter','tes','tet'], constraint_regex='([bfghklmnprsxzß]|au|eu|ei)$') +
             suffix_rules(_lang, ['e','en','est','et','ete','etem','eten','eter','etes','etet'], constraint_regex='([dt]|[bdfhkg][mn])$') +

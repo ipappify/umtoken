@@ -1,8 +1,10 @@
 # Swedish (sv)
 
 ## adjectives
-inflection: stor-/ stor-a stor-t
-adverb:     tjock-t stor-ligen avsiktlig-en
+inflection: stor-/ stor-a stor-t stor-e
+comparative: billig-are
+superlative: billig-ast billig-aste
+adverb:     tjock-t tro-ligen avsiktlig-en
 
 ## nouns
 * -or plural
@@ -38,7 +40,8 @@ grp 2 -er: stäng-er stäng-de  stäng-s  stäng-des
                               stäng-es
            läs-er   läs-te    läs-es   läs-tes
 grp 3 -r:  sy-r     sy-dde    sy-s     sy-ddes
-grp 4 -r:  stryk-er stryk-te  stryk-s  stryk-tes
+* strong past forms (strök) are formed by ablaut and not covered
+grp 4 -r:  stryk-er           stryk-s
                               stryk-es
 
 ### non-finite forms
@@ -48,5 +51,16 @@ grp 1 -ar: kall-a   kall-as  kall-at  kall-ats  kall-ande   kall-ad
 grp 2 -er: stäng-a  stäng-as stäng-t  stäng-ts  stäng-ande  stäng-d
            läs-a    läs-as   läs-t    läs-ts    läs-ande    läs-t
 grp 3 -r:  sy-/     sy-s     sy-tt    sy-tts    sy-ende     sy-dd
-grp 4 -r:  stryk-a  stryk-as stryk-t  stryk-ts  stryk-ande  stryk-t
-                             struk-it struk-its             struk-en
+grp 4 -r:  stryk-a  stryk-as                    stryk-ande
+                             struk-it struk-its             struk-en struk-et struk-na
+
+pp inflected: stäng-da sy-dda läs-ta kall-ade
+
+## derivation
+V>N:   forsk-ning forsk-ningen forsk-ningar forsk-ningarna
+       rör-else rör-elsen rör-elser rör-elserna
+V>ADJ: läs-bar läs-bart läs-bara
+ADJ>N: svag-het svag-heten svag-heter svag-heterna
+
+## interfixes (compounds): 
+common: stat-s(-minister) arbet-s(-tid)
