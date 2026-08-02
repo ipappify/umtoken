@@ -10,8 +10,3 @@ from .rules import MorphOp, RegexOp, MorphRule, SuffixRule
 from .tokenizer import Tokenizer
 from .utils import format as format_token_ids
 from .langs import get_rules
-try:
-    from .hf import UnimorphTokenizer, PropIdHandling
-except ImportError:
-    # If the hf module is not available, we can still use the rest of the package
-    pass
