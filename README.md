@@ -27,6 +27,10 @@ and projection layers instead of on the model.
 
 ![Words per token by language family](assets/words_per_token_by_family.png)
 
+*The figure plots **words per token** (longer bars are better) — the reciprocal
+of the tokens-per-word figures quoted below, which is the form that lets the
+axis run from 0 to a natural maximum of 1.0.*
+
 Measured on 66 GB of Wikipedia text across the 24 official EU languages:
 
 > **umtoken needs the fewest tokens in all 24 languages**, at a *smaller*
