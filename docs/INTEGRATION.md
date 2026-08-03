@@ -23,8 +23,8 @@ def embed(self, input_ids):          # (batch, seq, 2)
     return self.emb_0(input_ids[..., 0]) + self.emb_1(input_ids[..., 1])
 ```
 
-If your ids arrive packed as scalars — which is what the Hugging Face wrapper
-does by default — unpack them first:
+If your ids arrive packed as scalars — see [Packing ids into
+scalars](#packing-ids-into-scalars) — unpack them first:
 
 ```python
 input_ids_0 = input_ids % vocab_size

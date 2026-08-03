@@ -1,5 +1,47 @@
 # How umtoken works
 
+## Where the idea comes from
+
+umtoken began in 2021 as the tokenizer for
+[IP.Translator](https://www.ipappify.de/en/ip-translator), IP.appify's patent
+translation system, and has been in production there ever since.
+
+The design borrows a habit from theoretical physics: when a problem is too hard
+to attack head-on, look for variables you can separate. Predicting a word means
+predicting several things at once — which word it is, which inflected form it
+takes, whether it is capitalized, whether it follows a space. A flat subword
+vocabulary has to express all of that along a single axis, so it pays for every
+*combination* separately.
+
+Factorizing turns that product into a sum. `eu24_96k` carries 98,304 vocabulary
+entries, 2,661 rules and 6 whitespace/case combinations — three small dimensions
+that between them describe
+
+```
+98,304 × 2,661 × 6 = 1,569,521,664 distinct surface forms
+```
+
+from 98,304 + 2,661 + 6 ≈ **101,000** learned parameters of vocabulary. A flat
+vocabulary covering the same ground would need 1.57 billion entries.
+
+This is why a bigger vocabulary is not the fix. GPT-5 spends 1.16 tokens per
+word on English and 2.17 on Greek, and the obvious diagnosis — not enough of the
+budget went to Greek — is only part of it. Coverage of surface forms grows
+multiplicatively, so a flat vocabulary cannot buy its way out at any realistic
+size. The benchmark bears this out: Gemma 4 (262k) and Qwen3.6 (248k) both carry
+larger vocabularies than GPT-5 (200k), and both show the *same* spread across
+languages (1.90x and 1.88x, against GPT-5's 1.86x). Spending 30% more embedding
+parameters bought no evenness at all. umtoken's spread is 1.18x.
+
+The second consequence matters just as much downstream: the pieces mean
+something. A model that reads `chlor+o` `fluor+o` `carbon+e` starts from
+morphemes rather than from `chlor` `of` `lu` `or` `ocar` `bone`, and has
+correspondingly less to learn. In IP.Translator that is what made it possible to
+train competitive translation models for a narrow technical domain with modest
+resources.
+
+## The representation
+
 A standard tokenizer maps a word to a sequence of subword ids. umtoken maps it
 to a sequence of **tuples**: a vocabulary id plus a property id that carries the
 things a subword id should not have to encode — leading whitespace, casing, and

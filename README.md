@@ -82,6 +82,21 @@ format_token_ids(ids, tokenizer.model.morpher, no_join=True,
 `+` marks a stem/suffix boundary, a trailing `+` means the stem continues into
 the next token, and the `x`/`X` at the end is the end-of-word marker.
 
+## What it costs you
+
+umtoken is not a drop-in replacement for a BPE tokenizer. A token is a pair, not
+a scalar, so a model that consumes one needs two changes: an input embedding
+that sums a lookup per component, and an output head that predicts both. The
+components are not independent — the property is highly predictable *given* the
+vocabulary entry and close to unpredictable without it — so two independent
+projections leave accuracy on the table.
+[docs/INTEGRATION.md](docs/INTEGRATION.md) has the head we use in production,
+including the search over the joint distribution.
+
+If you are training a model from scratch, this is a decision you are making
+anyway. If you want to swap the tokenizer of an already pretrained model, umtoken
+is not the right tool.
+
 ## Pretrained models
 
 Under [`assets/`](assets):
@@ -149,7 +164,7 @@ the usual way.
 | [docs/BENCHMARKS.md](docs/BENCHMARKS.md) | EU-24 results, method, how to reproduce |
 | [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md) | levels 1-3 and the property-id encoding |
 | [docs/COMPARISON.md](docs/COMPARISON.md) | umtoken vs. BPE, side by side |
-| [docs/INTEGRATION.md](docs/INTEGRATION.md) | adapting a PyTorch model; Hugging Face wrapper |
+| [docs/INTEGRATION.md](docs/INTEGRATION.md) | adapting a PyTorch model: embeddings, output head, inference |
 | [docs/TOOLS.md](docs/TOOLS.md) | `extract.py`, `train.py`, `test.py`, `eval.py` |
 | <http://tokenizers.ipappify.de/> | try it in the browser |
 
