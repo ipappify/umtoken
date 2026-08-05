@@ -3,20 +3,29 @@
 ## adjectives
 
 ### comparison
+
+```
 comparative: gyors-abb gyors-abbak gyors-abbat gyors-abban
              szép-ebb szép-ebbek szép-ebbet szép-ebben
              nagy-obb
 adverbs:     gyors-an szép-en magyar-ul török-ül
+```
 
 ### superlative (leg- prefix)
+
+```
 superlative: [->leg]gyors-abb [->leg]szép-ebb [->leg]nagy-obb
              [->leg]gyors-abban [->leg]szép-ebben
+```
+
 ``` python
 op=RegexOp(r'^', r'leg', r'^leg', r'')
 ```
 
 ## nouns
 ### front rounded harmony
+
+```
 nominative:      könyv-/         könyv-ek
 accusative:      könyv-et        könyv-eket
 dative:          könyv-nek       könyv-eknek
@@ -44,12 +53,18 @@ poss 3rd sing:   könyv-e         könyv-ei
 poss 1st plural: könyv-ünk       könyv-eink
 poss 2nd plural: könyv-etek      könyv-eitek
 poss 3rd plural: könyv-ük        könyv-eik
+```
 
 ### front unrounded harmony
+
+```
 superessive:     dél-en
 allative:        dél-hez
+```
 
 ### back harmony
+
+```
 nominative:      ág-/       ág-ak
 accusative:      ág-at      ág-akat
 dative:          ág-nak     ág-aknak
@@ -77,8 +92,11 @@ poss 3rd sing:   ág-a       ág-ai
 poss 1st plural: ág-unk     ág-aink
 poss 2nd plural: ág-atok    ág-aitok
 poss 3rd plural: ág-uk      ág-aik
+```
 
 ### back harmony (o linking)
+
+```
 nominative:      orvos-/     orvos-ok
 accusative:      orvos-t     orvos-okat
                  bot-ot
@@ -99,8 +117,11 @@ delative:        orvos-okról
 ablative:        orvos-októl
 na poss sing:    orvos-oké
 na poss plural:  orvos-okéi
+```
 
 ### front rounded harmony (ö linking)
+
+```
 nominative:      gyümölcs-/     gyümölcs-ök
 accusative:      gyümölcs-öt    gyümölcs-öket
 dative:          gyümölcs-öknek
@@ -120,8 +141,11 @@ delative:        gyümölcs-ökről
 ablative:        gyümölcs-öktől
 na poss sing:    gyümölcs-öké
 na poss plural:  gyümölcs-ökéi
+```
 
 ### vowel-final stems
+
+```
 nominative:      autó-k      cipő-k
 accusative:      autó-t      autó-kat    cipő-ket
 dative:          autó-knak   cipő-knek
@@ -133,9 +157,12 @@ allative:        autó-khoz   cipő-khöz
 elative:         autó-kból   cipő-kből
 delative:        autó-król   cipő-kről
 ablative:        autó-któl   cipő-ktől
+```
 
 ### instrumental / translative singular
 **TODO: are there any nouns that end with f or fy?**
+
+```
 instrumental:   köny[v->vv]-el
                 ször[n->nn]y-el
                 á[g->gg]-al
@@ -144,6 +171,8 @@ translative:    köny[v->vv]-é
                 ször[n->nn]y-é
                 á[g->gg]-á
                 ara[n->nn]y-á
+```
+
 ``` python
 op=RegexOp(r'([bdfgjklmnprstvz])(y?)$', r'\1\1\2', r'([bdfgjklmnprstvz])\1(y?)$', r'\1\2')
 ```
@@ -151,6 +180,8 @@ op=RegexOp(r'([bdfgjklmnprstvz])(y?)$', r'\1\1\2', r'([bdfgjklmnprstvz])\1(y?)$'
 ## verbs
 ### -ik
 **TODO: duplicate consonant in present def: ját[s->ss]z - is this a common rule or an exception**
+
+```
 present indef:    játsz-om játsz-ol játsz-ik játsz-unk játsz-otok játsz-anak
                   játsz-ok
                   törőd-öm törőd-sz törőd-ik törőd-ünk törőd-tök törőd-nek
@@ -173,8 +204,11 @@ other forms:      játsz-ás játsz-ó játsz-ott játsz-andó játsz-va játsz-
 potential:        játsz-hat játsz-hatok játsz-hatom játsz-hatod játsz-hatja játsz-hatunk játsz-hattok játsz-hatnak játsz-hatott
 cond indef:       játsz-anék játsz-anál játsz-ana játsz-anánk játsz-anátok játsz-anának
 cond def:         játsz-anám játsz-anád játsz-aná
+```
 
 ### non -ik
+
+```
 present indef:    szeret-ek  szeret-sz  szeret-/   szeret-ünk  szeret-tek   szeret-nek
 present def:      szeret-em  szeret-ed  szeret-i   szeret-jük  szeret-itek  szeret-ik
 present 2nd obj:  szeret-lek
@@ -186,14 +220,20 @@ other forms:      szeret-és szeret-ő szeret-ett szeret-endő szeret-ve szeret-
 potential:        szeret-het szeret-hetek szeret-hetem szeret-heted szeret-heti szeret-hetünk szeret-hettek szeret-hetnek szeret-hetett
 cond indef:       szeret-nék szeret-nél szeret-ne szeret-nénk szeret-nétek szeret-nének
 cond def:         szeret-ném szeret-néd szeret-né
+```
 
 ### imperative
 * sibilant-final stems assimilate (szeret -> szeress, játszik -> játssz) and are not covered
 * the future tense (fog + infinitive) is analytic and needs no rules
+
+```
 common: törőd-j törőd-jön törőd-jünk törőd-jetek törőd-jenek
         mond-j mond-jon mond-junk mond-jatok mond-janak
+```
 
 ## derivation
+
+```
 V>N:   olvas-ás olvas-ást olvas-ások olvas-ásokat
        érkez-és érkez-ést érkez-ések érkez-éseket
 ADJ>N: szabad-ság szabad-ságot szabad-ságok
@@ -202,5 +242,4 @@ N>ADJ: hat-os ház-as kert-es gyümölcs-ös
        város-i
 V>V:   olvas-gat néz-eget
 NUM>ADV: hat-szor egy-szer öt-ször
-
-
+```

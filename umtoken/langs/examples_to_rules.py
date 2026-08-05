@@ -24,9 +24,20 @@ def get_blocks(lines):
 def get_groups(block):
     groups = []
     group = []
+    in_fence = False
     for line in block.splitlines():
-        if not line or line.startswith("`"):
-            break
+        if line.startswith("```"):
+            # examples may be wrapped in a plain ``` fence (for rendering);
+            # a ``` python fence holds the rule options and ends the examples
+            if in_fence:
+                in_fence = False
+            elif line[3:].strip().lower() in ("python", "py"):
+                break
+            else:
+                in_fence = True
+            continue
+        if not line:
+            continue
         if ":" in line:
             if group:
                 groups.append(group)

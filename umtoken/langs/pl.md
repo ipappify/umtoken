@@ -3,6 +3,8 @@
 ## adjectives
 
 ### regular forms
+
+```
 nom: lw-i wielk-i drog-i duż-y
      lw-ia wielk-a drog-a duż-a
      lw-ie wielk-ie drog-ie duż-e 
@@ -33,74 +35,119 @@ loc: lw-im wielk-im drog-im duż-ym
      lw-im wielk-im drog-im duż-ym
      lw-ich wielk-ich drog-ich duż-ych
      lw-ich wielk-ich drog-ich duż-ych
+```
 
 ### special cases of adjectives ending with ki
+
+```
 common: wiel[k->c]-y
+```
+
 ``` python
 op=RegexOp(r'k$', r'c', r'c$', r'k')
 ```
 
 ### special cases of adjectives ending with gi
+
+```
 common: dro[g->dz]-y
+```
+
 ``` python
 op=RegexOp(r'g$', r'dz', r'dz$', r'g')
 ```
 
 ### special cases of adjectives ending with ry
+
+```
 common: sta[r->rz]-y
+```
+
 ``` python
 op=RegexOp(r'r$', r'rz', r'rz$', r'r')
 ```
 
 ### special cases of adjectives ending with ży
+
+```
 common: du[ż->z]-i
+```
+
 ``` python
 op=RegexOp(r'ż$', r'z', r'z$', r'ż')
 ```
 
 ### special cases of adjectives ending with sny
+
+```
 common: żało[sn->śn]-i
+```
+
 ``` python
 op=RegexOp(r'sn$', r'śn', r'śn$', r'sn')
 ```
 
 ### special cases of adjectives ending with ty
+
+```
 common: popiela[t->c]-i
+```
+
 ``` python
 op=RegexOp(r't$', r'c', r'c$', r't')
 ```
 
 ### special cases of adjectives ending with ły
+
+```
 common: bia[ł->l]-i
+```
+
 ``` python
 op=RegexOp(r'ł$', r'l', r'l$', r'ł')
 ```
 
 ### comparison
+
+```
 comparative: star-szy star-sza star-sze star-si
              ładn-iejszy ładn-iejsza ładn-iejsze
 adverbs:     szybc-iej
+```
 
 ### superlative (naj- prefix)
+
+```
 superlative: [->naj]star-szy [->naj]star-sza [->naj]star-sze [->naj]star-si
              [->naj]ładn-iejszy [->naj]ładn-iejsza [->naj]ładn-iejsze
 adverbs:     [->naj]szybc-iej
+```
+
 ``` python
 op=RegexOp(r'^', r'naj', r'^naj', r'')
 ```
 
 ### adjective > adverb
+
+```
 common: szybk-o
         łagodn-ie
+```
 
 ### adjective > adverb - special cases of adjectives ending with ry
+
+```
 common: dob[r->rz]-e
+```
+
 ``` python
 op=RegexOp(r'r$', r'rz', r'rz$', r'r')
 ```
 
 ## nouns
 ### f nouns: 
+
+```
 nom: skaz-a skaz-y
      skrob-ia skrob-ie
      chem-ia chem-ie
@@ -130,8 +177,11 @@ voc: skaz-o skaz-y
      skrob-io skrob-ie
      chem-io chem-ie
      długośc-i długośc-i
+```
 
 ### m nouns:
+
+```
 nom: dom-/ dom-y
      gość-/ gośc-ie
      pan-owie profesor-owie
@@ -147,8 +197,11 @@ loc: dom-u dom-ie dom-ach
      gośc-iu gośc-iach
 voc: dom-u dom-ie dom-y
      gośc-iu gośc-ie
+```
 
 ### n nouns:
+
+```
 nom: okn-o okn-a
      morz-e morz-a
 gen: okn-a (ok-ien)
@@ -163,11 +216,14 @@ loc: okn-ie okn-ach
      morz-u morz-ach
 voc: okn-o okn-a
      morz-e morz-a
+```
 
 ## verbs
 * 1st/2nd-person neuter past forms (kochałom, kochałoś, ...) are theoretical and excluded (parenthesized)
 
 ### -ać verbs
+
+```
 infinitive: koch-ać
 ADV:        koch-ając
 N:          koch-anie
@@ -180,8 +236,11 @@ indicative, imperfect: koch-ał koch-ała koch-ało koch-ali koch-ały
                        koch-ałeś koch-ałaś (koch-ałoś) koch-aliście koch-ałyście
 conditional: koch-ałby koch-ałaby koch-ałoby koch-aliby koch-ałyby
 imperative:  koch-aj koch-ajmy koch-ajcie
+```
 
 ### -ić verbs
+
+```
 infinitive: widz-ieć
             pal-ić
 ADV:        widz-ąc
@@ -200,8 +259,11 @@ indicative, imperfect: widz-iał widz-iała widz-iało widz-ieli widz-iały
                        pal-iłeś pal-iłaś (pal-iłoś) pal-iliście pal-iłyście
 conditional: widz-iałby widz-iałaby widz-iałoby widz-ieliby widz-iałyby
              pal-iłby pal-iłaby pal-iłoby pal-iliby pal-iłyby
+```
 
 ### -ować verbs
+
+```
 infinitive: mal-ować
 ADV:        mal-ując
 N:          mal-owanie
@@ -214,8 +276,11 @@ indicative, imperfect: mal-ował mal-owała mal-owało mal-owali mal-owały
                        mal-owałeś mal-owałaś (mal-owałoś) mal-owaliście mal-owałyście
 conditional: mal-owałby mal-owałaby mal-owałoby mal-owaliby mal-owałyby
 imperative:  mal-uj mal-ujmy mal-ujcie
+```
 
 ### -nąć verbs
+
+```
 infinitive: ciąg-nąć
 ADV:        ciąg-nąc
 N:          ciąg-nięcie
@@ -224,11 +289,15 @@ indicative, present:   ciąg-nę ciąg-niesz ciąg-nie ciąg-niemy ciąg-niecie 
 indicative, imperfect: ciąg-nął ciąg-nęła ciąg-nęło ciąg-nęli ciąg-nęły
                        ciąg-nięto
 imperative: ciąg-nij ciąg-nijmy ciąg-nijcie
+```
 
 ## derivation
+
+```
 V>N:   słuch-acz słuch-acza słuch-acze słuch-aczy
 V>ADJ: wykon-alny wykon-alna wykon-alne
 ADJ>N: szybk-ość szybk-ości szybk-ością szybk-ościom szybk-ościach szybk-ościami
 N>ADJ: sport-owy sport-owa sport-owe sport-owego sport-owej sport-owemu sport-owym sport-owych sport-owymi sport-ową
        pol-ski pol-ska pol-skie pol-skiego pol-skiej pol-skiemu pol-skim pol-skich pol-skimi pol-ską pol-scy
 N>N:   nauczyciel-ka nauczyciel-ki nauczyciel-ce nauczyciel-kę nauczyciel-ką nauczyciel-ek nauczyciel-kom nauczyciel-kach nauczyciel-kami
+```

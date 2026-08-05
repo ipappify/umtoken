@@ -1,16 +1,24 @@
 # Italian (it)
 
 ## adjectives
+
+```
 common: alt-o alt-a alt-i alt-e
 superlative: bell-issimo bell-issima bell-issimi bell-issime
 adverbs: lent-amente felic-emente real-mente 
+```
 
 ## nouns
+
+```
 m nouns: scont-o scont-i
 f nouns: natur-a natur-e
+```
 
 ## verbs
 ### -are verbs
+
+```
 infinitive: parl-are
 gerund:     parl-ando
 pres part:  parl-ante parl-anti
@@ -23,8 +31,11 @@ indicative, future:    parl-erò parl-erai parl-erà parl-eremo parl-erete parl-
 conditional, present:  parl-erei parl-eresti parl-erebbe parl-eremmo parl-ereste parl-erebbero
 subjunctive, present:  parl-i parl-i parl-i parl-iamo parl-iate parl-ino
 subjunctive, imperfect: parl-assi parl-assi parl-asse (parl-assimo) parl-aste parl-assero
+```
 
 ### -ere verbs
+
+```
 infinitive: ricev-ere
 gerund:     ricev-endo
 pres part:  ricev-ente ricev-enti
@@ -38,8 +49,11 @@ indicative, future:    ricev-erò ricev-erai ricev-erà ricev-eremo ricev-erete 
 conditional, present:  ricev-erei ricev-eresti ricev-erebbe ricev-eremmo ricev-ereste ricev-erebbero
 subjunctive, present:  ricev-a ricev-a ricev-a ricev-iamo ricev-iate ricev-ano
 subjunctive, imperfect: ricev-essi ricev-essi ricev-esse (ricev-essimo) ricev-este ricev-essero
+```
 
 ### -ire verbs
+
+```
 infinitive: dorm-ire
 gerund:     dorm-endo
 pres part:  dorm-ente dorm-enti nutr-iente nutr-ienti
@@ -53,34 +67,47 @@ conditional, present:  dorm-irei dorm-iresti dorm-irebbe dorm-iremmo dorm-ireste
 subjunctive, present:  dorm-a dorm-a dorm-a dorm-iamo dorm-iate dorm-ano
                        assorb-isca assorb-isca assorb-isca assorb-iscano
 subjunctive, imperfect: dorm-issi dorm-issi dorm-isse (dorm-issimo) dorm-iste dorm-issero
+```
 
 ### c -> ch before e/i (-co -ca nouns/adjectives, -care verbs)
+
+```
 plural: ban[c->ch]-i ami[c->ch]-e
 indicative, present:   cer[c->ch]-i cer[c->ch]-iamo
 indicative, future:    cer[c->ch]-erò cer[c->ch]-erai cer[c->ch]-erà cer[c->ch]-eremo cer[c->ch]-erete cer[c->ch]-eranno
 conditional, present:  cer[c->ch]-erei cer[c->ch]-eresti cer[c->ch]-erebbe cer[c->ch]-eremmo cer[c->ch]-ereste cer[c->ch]-erebbero
 subjunctive, present:  cer[c->ch]-ino
+```
+
 ``` python
 op=RegexOp(r'c$', r'ch', r'ch$', r'c')
 ```
 
 ### g -> gh before e/i (-go -ga nouns/adjectives, -gare verbs)
+
+```
 plural: la[g->gh]-i ri[g->gh]-e
 indicative, present:   pa[g->gh]-i pa[g->gh]-iamo
 indicative, future:    pa[g->gh]-erò pa[g->gh]-erai pa[g->gh]-erà pa[g->gh]-eremo pa[g->gh]-erete pa[g->gh]-eranno
 conditional, present:  pa[g->gh]-erei pa[g->gh]-eresti pa[g->gh]-erebbe pa[g->gh]-eremmo pa[g->gh]-ereste pa[g->gh]-erebbero
 subjunctive, present:  pa[g->gh]-ino
+```
+
 ``` python
 op=RegexOp(r'g$', r'gh', r'gh$', r'g')
 ```
 
 ## derivation
+
+```
 V>N:   gioc-atore gioc-atrice gioc-atori gioc-atrici
        pag-amento pag-amenti mov-imento mov-imenti
        form-azione form-azioni lav-aggio lav-aggi
 V>ADJ: am-abile am-abili poss-ibile poss-ibili
 ADJ>N: rapid-ità
+```
 
+```
 * **dictionary froms**
 * ## verbs
 * ### -are verbs
@@ -111,3 +138,4 @@ ADJ>N: rapid-ità
 *                        assorb-ìsco assorb-ìsci assorb-ìsce assorb-iàmo assorb-ìte assorb-ìscono
 * indicative, imperfect: dorm-ìvo dorm-ìvi dorm-ìva dorm-ivàmo dorm-ivàte dorm-ìvano
 * indicative, past hist: dorm-ìi dorm-ìsti dorm-ì dorm-ìmmo dorm-ìste dorm-ìrono
+```
