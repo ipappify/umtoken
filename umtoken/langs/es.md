@@ -1,24 +1,36 @@
 # Spanish (es)
  
 ## adjectives
+
+```
 o adjectives: bonit-a bonit-as bonit-o bonit-os
 e adjectives: grand-e grand-es
 adverbs:      bonit-amente grand-emente real-mente
+```
 
 ## nouns
+
+```
 f nouns: cas-a cas-as
 m nouns: libr-o libr-os
 m/f nouns: estudiant-e estudiant-es 
            flor-/ flor-es
+```
 
 ### nouns ending with -z
+
+```
 common: acidez-/ acide[z->c]-es
+```
+
 ``` python
 op=RegexOp(r'z$', r'c', r'c$', r'z')
 ```
 
 ## verbs
 ### -ar verbs
+
+```
 infinitive: habl-ar
 gerund:     habl-ando
 V>N, V>ADJ: habl-ante habl-antes
@@ -31,8 +43,11 @@ indicative, future:    habl-aré habl-arás habl-ará habl-aremos habl-aréis ha
 conditional, present:  habl-aría habl-arías habl-aría habl-aríamos habl-aríais habl-arían
 subjunctive, present:  habl-e habl-es habl-e habl-emos habl-éis habl-en
 subjunctive, imperfect: habl-ara habl-aras habl-ara (habl-áramos) (habl-arais) habl-aran
+```
 
 ### -ir verbs
+
+```
 infinitive: viv-ir
 gerund:     viv-iendo
 V>N, V>ADJ: viv-iente viv-ientes
@@ -45,8 +60,11 @@ indicative, future:    viv-iré viv-irás viv-irá viv-iremos viv-iréis viv-ir�
 conditional, present:  viv-iría viv-irías viv-iría viv-iríamos viv-iríais viv-irían
 subjunctive, present:  viv-a viv-as viv-a viv-amos viv-áis viv-an
 subjunctive, imperfect: viv-iera viv-ieras viv-iera (viv-iéramos) (viv-ierais) viv-ieran
- 
+```
+
 ### -er verbs
+
+```
 infinitive: com-er
 gerund:     com-iendo
 V>N, V>ADJ: corr-iente corr-ientes
@@ -59,31 +77,47 @@ indicative, future:    com-eré com-erás com-erá com-eremos com-eréis com-er�
 conditional, present:  com-ería com-erías com-ería com-eríamos com-eríais com-erían
 subjunctive, present:  com-a com-as com-a com-amos com-áis com-an
 subjunctive, imperfect: com-iera com-ieras com-iera (com-iéramos) (com-ierais) com-ieran
+```
 
 ### -car verbs (c -> qu before e)
+
+```
 indicative, preterite: bus[c->qu]-é
 subjunctive, present:  bus[c->qu]-e bus[c->qu]-es bus[c->qu]-emos bus[c->qu]-éis bus[c->qu]-en
+```
+
 ``` python
 op=RegexOp(r'c$', r'qu', r'qu$', r'c')
 ```
 
 ### -gar verbs (g -> gu before e)
+
+```
 indicative, preterite: lle[g->gu]-é
 subjunctive, present:  lle[g->gu]-e lle[g->gu]-es lle[g->gu]-emos lle[g->gu]-éis lle[g->gu]-en
+```
+
 ``` python
 op=RegexOp(r'g$', r'gu', r'gu$', r'g')
 ```
 
 ### -zar verbs (z -> c before e)
+
+```
 indicative, preterite: empe[z->c]-é
 subjunctive, present:  empe[z->c]-e empe[z->c]-es empe[z->c]-emos empe[z->c]-éis empe[z->c]-en
+```
+
 ``` python
 op=RegexOp(r'z$', r'c', r'c$', r'z')
 ```
 
 ## derivation
+
+```
 V>N:   trabaj-ador trabaj-adora trabaj-adores trabaj-adoras
        vend-edor vend-edora vend-edores vend-edoras
        form-ación form-aciones equip-aje equip-ajes
 V>ADJ: am-able am-ables pos-ible pos-ibles
 ADJ>N: capac-idad capac-idades
+```
