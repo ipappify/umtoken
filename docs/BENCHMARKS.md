@@ -13,6 +13,22 @@ snapshot — 66.1 GB of text, 11.58 billion words.
 
 ## Results
 
+### Two views of one number
+
+The figures and the tables report the same measurement in reciprocal forms, so
+watch which way "better" points:
+
+| | unit | direction | used by |
+|---|---|---|---|
+| **tokens per word** | how many tokens one word costs, e.g. 1.150 | **lower is better** | the tables and the text below |
+| **words per token** | how much text one token carries, e.g. 0.870 | **higher is better** | the figures |
+
+They are the same number: `words per token = 1 / tokens per word`. The figures
+use the reciprocal because it has a natural ceiling — one token can carry at
+most one whole word, so the axis can run from 0 to 1.0 and the bars stay
+proportional to the values. Tokens per word has no such ceiling, and it is the
+form the literature quotes, so the tables keep it.
+
 ![Words per token by language](../assets/words_per_token_by_lang.png)
 
 Tokens per word, **lower is better**; the best value in each row is bold.
