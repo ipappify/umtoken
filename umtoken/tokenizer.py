@@ -1,6 +1,7 @@
 # Path: umtoken/tokenizer.py
 
 import json
+import regex as re
 from typing import Callable, List, Optional, Tuple, Union
 from warnings import warn
 
@@ -9,11 +10,48 @@ from .pre import PreTokenizer
 from .model import Model
 from .utils import cumsum
 
+# a character written as its UTF-8 bytes in hex, e.g. "&uc2b0;" for "°" (seen in polluted
+# training data, so a model may emit it)
+_utf8_escape_regex = re.compile(r"&u([0-9a-fA-F]{2,8});")
+
+
+def decode_utf8_escape_words(words: List[str]) -> List[str]:
+    """Replace complete ``&u<utf-8 hex>;`` escapes that span one or more of ``words`` by the
+    character they encode. The character goes to the first word the escape touches, the
+    escape's other characters are removed from the words they are in (which may become
+    empty), so the number of words - and with it a token-to-word mapping - is unchanged.
+    Escapes that do not decode as UTF-8 are kept."""
+    text = "".join(words)
+    if "&u" not in text:
+        return words
+    matches = []
+    for m in _utf8_escape_regex.finditer(text):
+        try:
+            matches.append((m.start(), m.end(), bytes.fromhex(m.group(1)).decode("utf-8")))
+        except ValueError:
+            pass
+    if not matches:
+        return words
+    words = list(words)
+    offsets = list(cumsum(len(w) for w in words))
+    # right to left: an edit only changes words at or after its start, so the offsets of
+    # the words to the left (where the remaining matches are) stay valid
+    for start, end, char in reversed(matches):
+        first = True
+        for k, word in enumerate(words):
+            offset = offsets[k]
+            if offset >= end or offset + len(word) <= start:
+                continue
+            words[k] = word[:max(0, start - offset)] + (char if first else "") + word[max(0, end - offset):]
+            first = False
+    return words
+
 class Tokenizer():
     def __init__(self, 
                  pre: PreTokenizer,
                  model: Model,
-                 thumbprint: Optional[str] = None):
+                 thumbprint: Optional[str] = None,
+                 decode_utf8_escapes: bool = False):
         """
         A tokenizer.
         
@@ -21,10 +59,14 @@ class Tokenizer():
             pre: The pre-tokenizer.
             model: The tokenizer model.
             thumbprint: A thumbprint for identifying the tokenizer.
+            decode_utf8_escapes: Whether ``detokenize`` replaces ``&u<utf-8 hex>;`` escapes
+                (e.g. ``&uc2b0;``) by the character they encode. A runtime option (not saved,
+                not part of the thumbprint); it may also be set on the attribute.
         """
         self.pre = pre
         self.model = model
         self.thumbprint = thumbprint
+        self.decode_utf8_escapes = decode_utf8_escapes
         # tolerate reserved tokens that aren't in the model's vocab (custom pre + off-the-shelf model)
         self.reserved_token_ids = frozenset(
             model.vocab_lookup[t] for t in pre.reserved_tokens if t in model.vocab_lookup
@@ -197,6 +239,9 @@ class Tokenizer():
             word = self.pre.unescape(word)
             words.append(word)
 
+        if self.decode_utf8_escapes:
+            words = decode_utf8_escape_words(words)
+
         text = "".join(words)
         if not return_ranges:
             return text
@@ -217,7 +262,8 @@ class Tokenizer():
         pre = PreTokenizer.load_dict(d["pre"], **kwargs.get("pre", {}))
         model = Model.load_dict(d["model"], **kwargs.get("model", {}))
         thumbprint = d.get("thumbprint")
-        return Tokenizer(pre, model, thumbprint)
+        return Tokenizer(pre, model, thumbprint,
+                         decode_utf8_escapes=kwargs.get("decode_utf8_escapes", False))
     
     def save(self, path: str):
         """
