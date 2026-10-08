@@ -12,6 +12,7 @@ from glob import glob
 
 from tqdm import tqdm
 
+from .pre import NORMALIZATIONS
 from .vocab import extract_vocab, save_vocab
 
 def boradcast_lang_cols(cols, lang_cols):
@@ -202,7 +203,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input-file", nargs="+", help="The input file(s). Supported formats: parquet or, (gzipped) jsonl, csv, or txt", required=True)
     parser.add_argument("-c", "--column-name", nargs="+", help="Column name(s) to extract from the input file(s).")
-    parser.add_argument("-n", "--normalization", default="default", choices=["default", "ipt", "nfc"], help="unicode normalization to apply to input words (default: default).")
+    parser.add_argument("-n", "--normalization", default="default", choices=NORMALIZATIONS, help="unicode normalization to apply to input words (default: default).")
     parser.add_argument("-f", "--min-frequency", type=int, help="The minimum frequency of a word to be included in the vocabulary.")
     parser.add_argument("-o", "--output-file", help="The output vocab file in json format (compact and fast) or jsonl format (more human readable).", required=True)
     parser.add_argument("-lr", "--lang-regex", help="Regex for extracting lang from path. The first group is used to replace the {lang} placeholder in output file.")

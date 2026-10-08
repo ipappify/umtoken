@@ -9,7 +9,7 @@ from typing import List
 from tqdm import tqdm
 
 from .alphabet import get_alphabet
-from .pre import PreTokenizer
+from .pre import NORMALIZATIONS, PreTokenizer
 from .trainer import Trainer, TrainerConfig
 from .langs import get_rules
 from .tokenizer import Tokenizer
@@ -21,7 +21,7 @@ def replace_continue_char(w, cc):
 def main(args):
     assert len(args.input_file) > 0, "No input files specified."
     assert len(args.languages) > 0, "No languages specified."
-    assert args.normalization in ["default", "ipt", "nfc"], "Unsupported normalization."
+    assert args.normalization in NORMALIZATIONS, "Unsupported normalization."
     
     # expand_languages mutates in place but only returns a deduped/sorted copy;
     # capture the return value so we don't carry duplicates through the rest of the run
@@ -223,7 +223,7 @@ if __name__ == '__main__':
                         help="tie vocabs and rules by languages (default: False)")
     
     parser.add_argument("-n", "--normalization",
-                        choices=["default", "ipt", "nfc"],
+                        choices=NORMALIZATIONS,
                         default="default",
                         help="unicode normalization to apply to input words (default: default)")
     

@@ -24,7 +24,7 @@ python -m umtoken.extract -i <input_path> -c <column_name> -o <output_path> [-l 
 | `-i`, `--input-file` | input file(s); supports wildcards (`~/data/super_eurlex/*/*_clean.parquet`) |
 | `-c`, `--column-name` | column(s) holding the text (e.g. `text_cleaned`) |
 | `-o`, `--output-file` | where the vocabulary is written; `{lang}` is substituted |
-| `-n`, `--normalization` | unicode normalization: `default`, `ipt`, `nfc` (default: `default`) |
+| `-n`, `--normalization` | unicode normalization: `default`, `ipt`, `ipt-cjk`, `nfc` (default: `default`) |
 | `-f`, `--min-frequency` | minimum frequency for a word to be kept |
 | `-lr`, `--lang-regex` | regex extracting the language code from the filename; group 1 is used |
 | `-lc`, `--lang-column-name` | column holding the language; one column, or one per `--column-name` |
@@ -78,7 +78,7 @@ python -m umtoken.train -i <lang_vocab_pairs> -c <cache_dir> -l <languages> -v <
 | `-d`, `--discount-exponent` | exponent for discounting word frequencies (default: 1.0) |
 | `-l`, `--languages` | languages to include (e.g. `eu3`) |
 | `-t`, `--tie` | tie vocabulary and rules by language |
-| `-n`, `--normalization` | `default`, `ipt`, `nfc` (default: `default`) |
+| `-n`, `--normalization` | `default`, `ipt`, `ipt-cjk`, `nfc` (default: `default`) |
 | `-w`, `--workers` | worker count; 0 = one per CPU (default: 0) |
 | `-its`, `--iterations` | number of EM iterations (default: 10) |
 | `--no-rules` | use only the necessary default rules |

@@ -33,18 +33,32 @@ DEFAULT_RESERVED_TOKENS = ([PAD_TOKEN, UNK_TOKEN, BOT_TOKEN, EOT_TOKEN, MSK_TOKE
                            [f"{RSV_TOKEN.format(i=i)}" for i in range(26)])
 
 _ws_or_control_regex = re.compile(r'\p{Z}(?<! )|\p{Cc}(?<![\t\n])', re.UNICODE)
+# runs that 'ipt' normalizes to NFKC: numbers and letters (excluding modifier letters)
 _alpha_or_num_regex = re.compile(r'\p{N}|(\p{L}(?<!\p{Lm}))+', re.UNICODE)
-# per-char form of _alpha_or_num_regex for the offset-tracking slow path
-_alpha_or_num_char_regex = re.compile(r'\p{N}|[\p{Ll}\p{Lu}\p{Lt}\p{Lo}]', re.UNICODE)
+# runs that 'ipt-cjk' normalizes to NFKC: additionally the half-/full-width forms block. The
+# block is matched first and as a whole run, so that half-width kana compose with the sound
+# marks following them (ﾊ + ﾞ -> バ); matching the kana alone would fold it to full width and
+# leave the mark behind as a stray half-width character. A kana preceding the run is included
+# for the same reason (ハ + ﾞ -> バ).
+_alpha_or_num_or_width_regex = re.compile(r'[\p{Script=Katakana}\p{Script=Hiragana}]?[\uFF00-\uFFEF]+|\p{N}|(\p{L}(?<!\p{Lm}))+', re.UNICODE)
+# half-width voiced and semi-voiced sound marks, which NFKC folds into the preceding kana
+_hw_sound_marks = "\uFF9E\uFF9F"
 # fast path for normalize(return_offsets=True): ASCII printable + tab/newline/CR + Latin-1 letter half
 # every char in this set is NFC-stable, NFKC-stable, and not in \p{Cf}/\p{M}/\p{Cc}/non-space \p{Z}.
 _norm_stable_regex = re.compile(r'\A[\x20-\x7E\t\n\rÀ-ÿ]*\Z', re.UNICODE)
+
+# supported unicode normalizations (see PreTokenizer)
+NORMALIZATIONS = ["default", "ipt", "ipt-cjk", "nfc"]
+# normalizations that replace non-standard whitespaces and controls with blanks
+_BLANK_NORMALIZATIONS = ["default", "ipt", "ipt-cjk"]
+# regex of the runs each normalization folds to NFKC (absent: no NFKC normalization)
+_NFKC_REGEXES = {"ipt": _alpha_or_num_regex, "ipt-cjk": _alpha_or_num_or_width_regex}
 
 class PreTokenizer:
     def __init__(self,
                  alphabet: Optional[str] = None,
                  encoding: Optional[Encoding] = None,
-                 normalization: Optional[Literal["default", "ipt", "nfc"]] = "default",
+                 normalization: Optional[Literal["default", "ipt", "ipt-cjk", "nfc"]] = "default",
                  split_regex=SPLIT_REGEX,
                  reserved_tokens: Optional[List[str]] = None,
                  preserve_soft_hyphen: Union[bool, str] = False,
@@ -59,6 +73,9 @@ class PreTokenizer:
                            'default': normalize the text to NFC and remove control characters, format characters, and uncombined diacritics
                            'ipt': additionally normalize digits and letters to NFKC (² -> 2, 𝑀 -> M, etc.) - 
                                   this is useful if formatting (superscipt, math italic, etc.) is handled on application level (as in IP.Translator)
+                           'ipt-cjk': like 'ipt', but also normalize the half-/full-width forms block to NFKC
+                                  (Ａ -> A, ０ -> 0, （ -> (, ￥ -> ¥, ｱ -> ア, ﾊﾞ -> バ, etc.) -
+                                  this is useful for CJK text, which mixes half-width and full-width forms
                            'nfc': normalize the text to NFC only
                            None: do not normalize the text
             split_regex: The regex to pre-split the text. Only the first matched group (group 1) is returned.
@@ -82,7 +99,7 @@ class PreTokenizer:
         """
         
         assert alphabet is None or encoding is None, "alphabet and encoding must not be provided simultaneously"
-        assert normalization is None or normalization in ["default", "ipt", "nfc"], "normalization must be None, 'default', 'ipt', or 'nfc'"
+        assert normalization is None or normalization in NORMALIZATIONS, f"normalization must be None or one of {NORMALIZATIONS}"
         assert preserve_soft_hyphen in [False, True, 'remove', 'preserve', 'append'], "preserve_soft_hyphen must be a boolean or one of 'remove', 'preserve', 'append'"
 
         if preserve_soft_hyphen == False:
@@ -100,6 +117,7 @@ class PreTokenizer:
 
         self.encoding = encoding or (Encoding(alphabet) if alphabet is not None else None)
         self.normalization = normalization
+        self._nfkc_regex = _NFKC_REGEXES.get(normalization)
         self.split_regex = re.compile(split_regex, re.UNICODE)
         self.reserved_tokens = frozenset(self.reserved_tokens_list)
         self.reserved_tokens_regex = re.compile("(" + "|".join(re.escape(t) for t in regex_order) + ")", re.UNICODE) if regex_order else None
@@ -191,17 +209,17 @@ class PreTokenizer:
         normalized output, plus a sentinel ``src_map[len(normalized)] == len(text)``.
         ``src_map`` is ``None`` when normalization was an identity (fast path)."""
         if not return_offsets:
-            if self.normalization in ["default", "ipt", "nfc"]:
+            if self.normalization in NORMALIZATIONS:
                 text = unicodedata.normalize("NFC", text)
 
-            if self.normalization in ["default", "ipt"]:
+            if self.normalization in _BLANK_NORMALIZATIONS:
                 # replace non-standard whitespaces and controls with blank space
                 text = _ws_or_control_regex.sub(" ", text)
 
-            if self.normalization == "ipt":
-                # normalize digits and letters to NFKC
-                # ² -> 2, 𝑀 -> M, etc.
-                text = _alpha_or_num_regex.sub(lambda w: unicodedata.normalize("NFKC", w.group(0)), text)
+            if self._nfkc_regex is not None:
+                # normalize digits and letters (and, for 'ipt-cjk', half-/full-width forms) to NFKC
+                # ² -> 2, 𝑀 -> M, （ -> (, etc.
+                text = self._nfkc_regex.sub(lambda w: unicodedata.normalize("NFKC", w.group(0)), text)
 
             if self._clean_regex:
                 text = self._clean_regex.sub("", text)
@@ -227,7 +245,7 @@ class PreTokenizer:
         chars: List[str] = []
         src: List[int] = []
 
-        if self.normalization in ["default", "ipt", "nfc"]:
+        if self.normalization in NORMALIZATIONS:
             i = 0
             while i < n:
                 j = i + 1
@@ -241,22 +259,35 @@ class PreTokenizer:
             chars = list(text)
             src = list(range(n))
 
-        if self.normalization in ["default", "ipt"]:
+        if self.normalization in _BLANK_NORMALIZATIONS:
             for k in range(len(chars)):
                 if _ws_or_control_regex.match(chars[k]):
                     chars[k] = " "
 
-        if self.normalization == "ipt":
+        if self._nfkc_regex is not None:
+            # normalize the same runs as the fast path, but cluster by cluster within each run
+            # (a character plus any sound marks folded into it), so that every output character
+            # keeps the source index of the cluster it came from
+            joined = "".join(chars)
             new_chars: List[str] = []
             new_src: List[int] = []
-            for c, s in zip(chars, src):
-                if _alpha_or_num_char_regex.match(c):
-                    for nc in unicodedata.normalize("NFKC", c):
+            pos = 0
+            for m in self._nfkc_regex.finditer(joined):
+                start, end = m.span()
+                new_chars.extend(chars[pos:start])
+                new_src.extend(src[pos:start])
+                i = start
+                while i < end:
+                    j = i + 1
+                    while j < end and joined[j] in _hw_sound_marks:
+                        j += 1
+                    for nc in unicodedata.normalize("NFKC", joined[i:j]):
                         new_chars.append(nc)
-                        new_src.append(s)
-                else:
-                    new_chars.append(c)
-                    new_src.append(s)
+                        new_src.append(src[i])
+                    i = j
+                pos = end
+            new_chars.extend(chars[pos:])
+            new_src.extend(src[pos:])
             chars, src = new_chars, new_src
 
         if self._clean_regex is not None:
