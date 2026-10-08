@@ -237,3 +237,61 @@ def test_split_and_escape_ranges_with_reserved_and_unicode():
             break
     else:
         assert False, f"expected '[X]' among the words; got {words}"
+
+# half-/full-width forms, their 'ipt-cjk' normalization, and their (unchanged) 'ipt' normalization
+FULLWIDTH_EXAMPLES = [
+    ("\uFF21\uFF22\uFF23", "ABC", "ABC"),                       # full-width upper case letters
+    ("\uFF41\uFF42\uFF43", "abc", "abc"),                       # full-width lower case letters
+    ("\uFF10\uFF11\uFF12\uFF13", "0123", "0123"),              # full-width digits
+    ("\uFF08\uFF09\uFF0D\uFF0E\uFF1A\uFF5E", "()-.:~",       # full-width punctuation is only
+     "\uFF08\uFF09\uFF0D\uFF0E\uFF1A\uFF5E"),                #   folded by 'ipt-cjk'
+    ("\uFFE5\uFFE1", "\u00A5\u00A3", "\uFFE5\uFFE1"),        # full-width currency signs
+    ("\uFF71\uFF72\uFF73", "\u30A2\u30A4\u30A6", "\u30A2\u30A4\u30A6"),  # half-width kana
+    ("\uFF8A\uFF9E\uFF72\uFF84", "\u30D0\u30A4\u30C8",      # half-width kana with voiced sound
+     "\u30CF\uFF9E\u30A4\u30C8"),                              #   mark: 'ipt' leaves the mark behind
+    ("\uFF8A\uFF9F", "\u30D1", "\u30CF\uFF9F"),               # half-width kana, semi-voiced mark
+    ("\uFF70", "\u30FC", "\uFF70"),                             # half-width prolonged sound mark
+    ("\u30CF\uFF9E", "\u30D0", "\u30CF\uFF9E"),               # full-width kana, half-width mark
+    ("\uFF2E\uFF4F\uFF0E\uFF11\uFF12\uFF13", "No.123", "No\uFF0E123"),
+    ("\u3042\u3000\u3044", "\u3042 \u3044", "\u3042 \u3044"),  # ideographic space -> blank
+    ("\u3001\u300C\u300D\u30AC", "\u3001\u300C\u300D\u30AC",  # full-width kana and CJK
+     "\u3001\u300C\u300D\u30AC"),                                 #   punctuation are kept
+    ("\u2103", "\u2103", "\u2103"),         # compatibility symbols outside the block are kept
+]
+
+def test_normalize_ipt_cjk_fullwidth():
+    pre = PreTokenizer(alphabet=EU24_ALPHABET, normalization="ipt-cjk")
+    for example, expected, _ in FULLWIDTH_EXAMPLES:
+        actual = pre.normalize(example)
+        assert actual == expected, f"Expected {expected!r}, got {actual!r} for {example!r}"
+
+def test_normalize_ipt_fullwidth_unchanged():
+    """'ipt' must keep folding letters and digits only, so that tokenizers trained
+    with it are unaffected by 'ipt-cjk'."""
+    pre = PreTokenizer(alphabet=EU24_ALPHABET, normalization="ipt")
+    for example, _, expected in FULLWIDTH_EXAMPLES:
+        actual = pre.normalize(example)
+        assert actual == expected, f"Expected {expected!r}, got {actual!r} for {example!r}"
+
+def test_normalize_ipt_cjk_fullwidth_offsets():
+    """The offset-tracking path must agree with the plain one and map each
+    normalized character back into the source text."""
+    for normalization, index in [("ipt-cjk", 1), ("ipt", 2)]:
+        pre = PreTokenizer(alphabet=EU24_ALPHABET, normalization=normalization)
+        for example in FULLWIDTH_EXAMPLES:
+            expected = example[index]
+            normalized, src_map = pre.normalize(example[0], return_offsets=True)
+            assert normalized == expected, f"Expected {expected!r}, got {normalized!r} for {example[0]!r}"
+            if src_map is None:
+                continue
+            assert len(src_map) == len(normalized) + 1
+            assert src_map[-1] == len(example[0])
+            assert all(a <= b for a, b in zip(src_map, src_map[1:])), f"Offsets not monotonic for {example[0]!r}"
+
+def test_split_and_escape_ranges_fullwidth():
+    """Ranges must cover the original text even where a kana and its sound mark
+    are folded into a single character."""
+    pre = PreTokenizer(alphabet=EU24_ALPHABET, normalization="ipt-cjk")
+    example = "\uFF08\uFF8A\uFF9E\uFF72\uFF84\uFF09\uFF2E\uFF4F\uFF0E\uFF11\uFF12\uFF13"
+    words, ranges = pre.split_and_escape(example, return_ranges=True)
+    assert "".join(example[s:s+l] for s, l in ranges) == example
