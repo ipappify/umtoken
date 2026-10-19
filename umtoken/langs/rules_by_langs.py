@@ -27,6 +27,7 @@ from .ro import RO_RULES
 from .sk import SK_RULES
 from .sl import SL_RULES
 from .sv import SV_RULES
+from .ja import JA_RULES
 
 RULES_BY_LANGS = {
     "bg": BG_RULES,
@@ -53,6 +54,7 @@ RULES_BY_LANGS = {
     "sk": SK_RULES,
     "sl": SL_RULES,
     "sv": SV_RULES,
+    "ja": JA_RULES,
 }
 
 def get_rules(languages: List[str], 

@@ -5,8 +5,9 @@ from base64 import b64encode
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
+import regex as re
 
-from .alphabet import ASCII_RESERVED_EOW as EOW, ASCII_ENCODING_SHY as SHY
+from .alphabet import ASCII_RESERVED_EOW as EOW, ASCII_ENCODING_SHY as SHY, _unescape_chars
 from .rules import MorphRule, SuffixRule
 from .morpher import Morpher
 from .lattice import Lattice
@@ -15,6 +16,15 @@ from .utils import format, get_rules_bitmask
 MIN_LOGIT = -20.0
 CUTOFF = 1E-3
 SHIFT = 1E-12 # tie-breaking for ambiguous paths
+
+# named regexes for words that are encoded without end-of-word marker (matched against the unescaped word).
+# In scripts without word separation (ja), the end of a pre-token does not mark the end of a word:
+# such words are encoded without EOW, and their suffix rules end the word on detokenization instead.
+NO_EOW_REGEXES = {"ja": r'[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]'}
+
+def needs_eow(word: str, no_eow_regex: Optional[re.Pattern]) -> bool:
+    """Whether the end-of-word marker is appended to the (escaped) word."""
+    return no_eow_regex is None or not no_eow_regex.search(_unescape_chars(word))
 
 def digamma(x):
     "digamma function assumes x > 0."
@@ -40,7 +50,8 @@ class Model():
                  number_handling: Optional[str] = None,
                  prebuild_stem_trie: bool = False,
                  langs: Optional[List[str]] = None,
-                 vocab_langs: Optional[List[int]] = None
+                 vocab_langs: Optional[List[int]] = None,
+                 no_eow_regex: Optional[str] = None
                  ):
         """
         A morphological tokenizer model.
@@ -58,6 +69,8 @@ class Model():
             prebuild_stem_trie: Whether to prebuild the stem trie.
             langs: The languages.
             vocab_langs: The vocabulary languages.
+            no_eow_regex: Words matching this regex (unescaped) are encoded without end-of-word marker,
+                          and rules with suffixes matching it end a word on detokenization (see NO_EOW_REGEXES).
         """
         assert vocab_langs is None or len(vocab_langs) == 0 or langs, "vocab_langs requires langs"
         assert number_handling in (None, "greedy-head", "greedy-tail"), "number_handling must be None, 'greedy-head' or 'greedy-tail'"
@@ -83,6 +96,11 @@ class Model():
         
         self.vocab_lookup = {v: i for i, v in enumerate(vocab)}
         self.is_eow_rule = [isinstance(r, SuffixRule) and r.suffix.endswith(EOW) for r in rules]
+        self.no_eow_regex = re.compile(no_eow_regex) if no_eow_regex else None
+        # rules ending a word on detokenization: eow rules and (non-eow) suffixes of no-eow words
+        self.is_word_end_rule = [eow or (self.no_eow_regex is not None and isinstance(r, SuffixRule) and
+                                         r.suffix != "" and self.no_eow_regex.search(_unescape_chars(r.suffix)) is not None)
+                                 for r, eow in zip(rules, self.is_eow_rule)]
         self.vocab_langs = None
         self.rules_langs = None
         if vocab_langs is not None and len(vocab_langs) > 0:
@@ -168,7 +186,7 @@ class Model():
         if not eow_applied:
             if word.endswith(SHY) and len(word) > 1:
                 word = word[:-1]
-            else:
+            elif needs_eow(word, self.no_eow_regex):
                 word = word + EOW
                 
         if len(word) < 1:
@@ -318,6 +336,8 @@ class Model():
         # nondeterminism from any MorphRule subclass that inherits object.__repr__
         rule_keys = [r.save_dict() for r in self.rules]
         key = f"{(self.alpha, self.beta, self.min_base_len, self.vocab, rule_keys)}"
+        if self.no_eow_regex is not None: # keep thumbprints of existing models
+            key += self.no_eow_regex.pattern
         md5 = hashlib.md5(key.encode("utf-8")).digest()
         return b64encode(md5[:6]).decode("utf-8")
     
@@ -392,7 +412,8 @@ class Model():
             'number_handling': self.number_handling,
             'vocab_logits': self.vocab_logits.tolist(),
             'vocab_langs': vocab_langs_out,
-            'rules_logits': self.rules_logits.tolist()
+            'rules_logits': self.rules_logits.tolist(),
+            'no_eow_regex': self.no_eow_regex.pattern if self.no_eow_regex is not None else None
         }
     
     @staticmethod
@@ -407,4 +428,5 @@ class Model():
                      vocab_logits=kwargs.get('vocab_logits', data['vocab_logits']),
                      rules_logits=kwargs.get('rules_logits', data['rules_logits']),
                      langs=kwargs.get('langs', data.get('langs')),
-                     vocab_langs=kwargs.get('vocab_langs', data.get('vocab_langs')))
+                     vocab_langs=kwargs.get('vocab_langs', data.get('vocab_langs')),
+                     no_eow_regex=kwargs.get('no_eow_regex', data.get('no_eow_regex')))

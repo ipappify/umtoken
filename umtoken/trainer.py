@@ -13,7 +13,7 @@ from .alphabet import (EU3_ALPHABET, ASCII_RESERVED_EOW, ASCII_ENCODING_SHY,
                        ASCII_ENCODING_NEWLINE, ASCII_ENCODING_SPACE, ASCII_ENCODING_TAB, 
                        ASCII_RESERVED_UTF8, ASCII_ENCODING)
 from .pre import DEFAULT_RESERVED_TOKENS, UNK_TOKEN
-from .model import Model, MIN_LOGIT
+from .model import Model, MIN_LOGIT, needs_eow
 from .rules import MorphRule
 from .utils import chunk_list
 
@@ -70,7 +70,8 @@ class TrainerConfig():
                  number_handling: str = "greedy-head",
                  min_balance_langs: Optional[float] = None,
                  workers: int = 0,
-                 force_slow: bool = False
+                 force_slow: bool = False,
+                 no_eow_regex: Optional[str] = None
                  ):
         """unimorph trainer configuration.
         
@@ -103,6 +104,7 @@ class TrainerConfig():
             force_slow: Force slow mode to prevent building a stem trie (=pretransformed bases).
                         Note that each worker needs to build its own trie. If the number of workers is high,
                         it may be preferrable to use force_slow=True to prevent building the stem trie.
+            no_eow_regex: Words matching this regex (unescaped) are trained without end-of-word marker (see model.NO_EOW_REGEXES).
         """
         assert iterations > 1
 
@@ -132,6 +134,7 @@ class TrainerConfig():
         self.min_balance_langs = min_balance_langs
         self.workers = workers if workers > 0 else os.cpu_count()
         self.force_slow = force_slow
+        self.no_eow_regex = no_eow_regex
 
 class Trainer():
     def __init__(self, config: TrainerConfig):
@@ -187,7 +190,8 @@ class Trainer():
                           self.config.alpha, self.config.beta,
                           langs=langs,
                           min_base_len=self.config.min_base_len,
-                          number_handling=self.config.number_handling)
+                          number_handling=self.config.number_handling,
+                          no_eow_regex=self.config.no_eow_regex)
             model.reset_logits()
             
             # EM
@@ -298,11 +302,12 @@ class Trainer():
                 else:
                     lang_by_words[i] = None
                     
-        # remove soft-hyphens, add end-of-word marker
-        for i, (word, count) in enumerate(words):    
+        # remove soft-hyphens, add end-of-word marker (unless the word is a no-eow word)
+        no_eow_regex = re.compile(self.config.no_eow_regex) if self.config.no_eow_regex else None
+        for i, (word, count) in enumerate(words):
             if len(word) > 1 and word[-1] == shy:
                 words[i] = word[:-1], count
-            else:
+            elif needs_eow(word, no_eow_regex):
                 words[i] = word + eow, count
 
         return words, lang_by_words
