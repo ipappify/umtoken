@@ -6,25 +6,27 @@ from typing import Optional, Iterable
 
 from tqdm import tqdm
 
-from .pre import PreTokenizer
+from .pre import PreTokenizer, SPLIT_REGEX
 
-def extract_vocab(text_iterator: Iterable[str], 
+def extract_vocab(text_iterator: Iterable[str],
                   normalization: Optional[str] = "default",
                   min_frequency: Optional[int] = None,
                   progress=True,
-                  check=True) -> Counter:
+                  check=True,
+                  split_regex: str = SPLIT_REGEX) -> Counter:
     """
     Extracts the vocabulary from a text iterator.
-    
+
     Args:
         text_iterator: An iterator of text.
         normalization: The normalization to use. See PreTokenizer for more information.
         min_frequency: The minimum frequency of a word to be included in the vocabulary.
-        
+        split_regex: The regex to pre-split the text. See PreTokenizer for more information.
+
     Returns:
         A Counter of the vocabulary.
     """
-    pre = PreTokenizer(normalization=normalization)
+    pre = PreTokenizer(normalization=normalization, split_regex=split_regex)
     vocab = Counter()
     if progress:
         text_iterator = tqdm(text_iterator, desc="Extracting vocabulary...")

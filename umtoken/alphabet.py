@@ -60,6 +60,11 @@ EXT_LATIN_IS = "áðéíóúýæöþ" # Icelandic
 EXT_CYRILLIC_RU = "йцъы" # Russian
 EXT_LATIN_TR = "çğıöşü" # Turkish
 
+# Japanese kana (kanji are escaped unless added to the alphabet, e.g. with train.py --alphabet-file)
+MIN_HIRAGANA_ALPHABET = "".join(chr(c) for c in range(0x3041, 0x3097)) + "ゝゞ"    # ぁ-ゖ
+MIN_KATAKANA_ALPHABET = "".join(chr(c) for c in range(0x30A1, 0x30FB)) + "ーヽヾ"  # ァ-ヺ
+EXT_JA = "々〆。、「」『』・〜" # iteration/closing marks and punctuation
+
 # Additional punctuation
 EXT_PUNCTUATION = "’»«›‹„“”·¡¿…–—‐†‡§"
 
@@ -102,7 +107,8 @@ LANG_TO_ALPHABET = {
     "no": EXT_LATIN_NO,
     "is": EXT_LATIN_IS,
     "ru": MIN_CYRILLIC_ALPHABET + EXT_CYRILLIC_RU,
-    "tr": EXT_LATIN_TR
+    "tr": EXT_LATIN_TR,
+    "ja": MIN_HIRAGANA_ALPHABET + MIN_KATAKANA_ALPHABET + EXT_JA,
 }
 
 def get_alphabet(languages: List[str]):

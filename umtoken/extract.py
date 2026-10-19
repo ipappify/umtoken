@@ -12,7 +12,7 @@ from glob import glob
 
 from tqdm import tqdm
 
-from .pre import NORMALIZATIONS
+from .pre import NORMALIZATIONS, SPLIT_REGEX, SPLIT_REGEXES
 from .vocab import extract_vocab, save_vocab
 
 def boradcast_lang_cols(cols, lang_cols):
@@ -100,12 +100,12 @@ def open_maybe_zipped(file):
         return pyzstd.open(file, "rt", encoding="utf8")
     return open(file, "r", encoding="utf8")
 
-def extract(input_files, cols, lang_cols, normalization, min_frequency):
+def extract(input_files, cols, lang_cols, normalization, min_frequency, split_regex=SPLIT_REGEX):
     if not lang_cols:
-        vocab = Counter()    
+        vocab = Counter()
         for input_file in input_files:
             file_iter = get_data_iter(input_file, cols, lang_cols)
-            vocab.update(extract_vocab(file_iter, normalization, min_frequency))
+            vocab.update(extract_vocab(file_iter, normalization, min_frequency, split_regex=split_regex))
         return vocab
     else:
         vocabs = {}
@@ -114,7 +114,7 @@ def extract(input_files, cols, lang_cols, normalization, min_frequency):
             for text, lang in file_iter:
                 if not text or not lang:
                     continue
-                vocabs.setdefault(lang, Counter()).update(extract_vocab([text], normalization, min_frequency, progress=False))
+                vocabs.setdefault(lang, Counter()).update(extract_vocab([text], normalization, min_frequency, progress=False, split_regex=split_regex))
         return vocabs
 
 def get_data_iter(input_file, cols, lang_cols):
@@ -155,9 +155,10 @@ def main(args):
     min_frequency = args.min_frequency
     lang_regex = args.lang_regex
     lang_column_names = args.lang_column_name
-    
+    split_regex = SPLIT_REGEXES[args.split_regex]
+
     assert not lang_regex or not lang_column_names, "Cannot use both lang-regex and lang-column-name options."
-    assert len(lang_column_names) in [0, 1, len(column_names)], "lang-column-name must be a single column, or one column for each column in --column-name."
+    assert not lang_column_names or len(lang_column_names) in [1, len(column_names or [])],"lang-column-name must be a single column, or one column for each column in --column-name."
     
     if lang_regex:
         if "{lang}" not in output_file:
@@ -177,7 +178,7 @@ def main(args):
 
         for lang, lang_files in files_by_lang.items():
             print(f"Extracting vocab for {lang}...")
-            vocab = extract(lang_files, column_names, None, normalization, min_frequency)
+            vocab = extract(lang_files, column_names, None, normalization, min_frequency, split_regex)
             lang_output_file = output_file.replace("{lang}", lang)
             os.makedirs(os.path.dirname(lang_output_file), exist_ok=True)
             save_vocab(vocab, lang_output_file)
@@ -186,14 +187,14 @@ def main(args):
         if "{lang}" not in output_file:
             raise ValueError("The output file must contain the {lang} placeholder when using the lang-regex option.")
         
-        vocab_by_lang = extract(input_files, column_names, lang_column_names, normalization, min_frequency)
+        vocab_by_lang = extract(input_files, column_names, lang_column_names, normalization, min_frequency, split_regex)
         for lang, vocab in vocab_by_lang.items():
             lang_output_file = output_file.replace("{lang}", lang)
             os.makedirs(os.path.dirname(lang_output_file), exist_ok=True)
             save_vocab(vocab, lang_output_file)
     
     else:
-        vocab = extract(input_files, column_names, None, normalization, min_frequency)
+        vocab = extract(input_files, column_names, None, normalization, min_frequency, split_regex)
         os.makedirs(os.path.dirname(output_file), exist_ok=True)
         save_vocab(vocab, output_file)
 
@@ -204,6 +205,7 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--input-file", nargs="+", help="The input file(s). Supported formats: parquet or, (gzipped) jsonl, csv, or txt", required=True)
     parser.add_argument("-c", "--column-name", nargs="+", help="Column name(s) to extract from the input file(s).")
     parser.add_argument("-n", "--normalization", default="default", choices=NORMALIZATIONS, help="unicode normalization to apply to input words (default: default).")
+    parser.add_argument("-s", "--split-regex", default="default", choices=list(SPLIT_REGEXES), help="pre-split regex to split the text into words; must match the one used for training (default: default).")
     parser.add_argument("-f", "--min-frequency", type=int, help="The minimum frequency of a word to be included in the vocabulary.")
     parser.add_argument("-o", "--output-file", help="The output vocab file in json format (compact and fast) or jsonl format (more human readable).", required=True)
     parser.add_argument("-lr", "--lang-regex", help="Regex for extracting lang from path. The first group is used to replace the {lang} placeholder in output file.")

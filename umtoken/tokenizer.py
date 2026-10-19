@@ -151,14 +151,22 @@ class Tokenizer():
             else:
                 v_id, r_id, up_id, ws_id = t_id
 
+            if not cur_new and (ws_id or up_id):
+                # space and case flags are only set on the first token of a word: emit the current word,
+                # which is not terminated by an eow rule (e.g. ja words without suffix)
+                word = self.model.decode(cur_tokens)
+                words.append(self.pre.unescape((word, cur_ws, cur_up)))
+                cur_tokens = []
+                cur_new = True
+
             if cur_new:
                 cur_ws = ws_id
                 cur_up = up_id
                 cur_new = False
 
-            # reserved tokens are always EOW rules
+            # reserved tokens are always EOW rules; suffixes of no-eow words (ja) end a word as well
             res = v_id in self.reserved_token_ids
-            eow = self.model.is_eow_rule[r_id] or res
+            eow = self.model.is_word_end_rule[r_id] or res
             cur_tokens.append((v_id, r_id))
             tokens_to_words.append(len(words))
 

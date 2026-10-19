@@ -20,6 +20,32 @@ from .utils import cumsum
 # wherein a single blank is merged to any succeeding match that is not a whitespace
 SPLIT_REGEX = r'( ?(?:[\p{Ll}\p{Lo}\p{Lm}]+|(?:\p{Lu}\p{Ll}|\p{Lt})[\p{Ll}\p{Lo}\p{Lm}]*|\p{Lu}\p{Lu}[\p{Lu}\p{Lo}\p{Lm}]*(?!\p{Ll})|\d+|(?<! )(\s)\2*|</?(?:su[bp]|u)>|\{(?:==|\+\+|--)|(?:==|\+\+|--)\}|(.)\3*))'
 
+# Japanese pre-split regex: like SPLIT_REGEX, but letter sequences are additionally split
+# a. between any two of kanji, katakana and (extended) Latin/Greek/Cyrillic letters
+# b. after hiragana when followed by kanji, katakana or Latin/Greek/Cyrillic letters
+# Katakana include the half-width forms (U+FF66-FF9D), Latin letters the full-width forms.
+# Extenders never start a split and are skipped when looking back: the prolonged sound mark
+# (ー, half-width ｰ), the half-width sound marks (ﾞ, ﾟ), and the counters ヵ/ヶ (which mostly
+# occur within kanji words, e.g. 一ヶ月).
+_JA_EXT = r'[ーｰﾞﾟヵヶ]'
+_JA_HAN = r'[\p{Script=Han}〆]' # incl. 々 (Script=Han) and 〆 (Script=Common)
+_JA_KATA = r'(?!' + _JA_EXT + r')\p{Script=Katakana}'
+_JA_HIRA = r'\p{Script=Hiragana}'
+_JA_LGC = r'[\p{Script=Latin}\p{Script=Greek}\p{Script=Cyrillic}]'
+def _ja_after(*classes):
+    # lookbehind: the preceding letter (skipping extenders) is of one of the classes
+    return r'(?<=(?:' + '|'.join(classes) + r')' + _JA_EXT + r'*)'
+_JA_BREAK = (r'(?:(?=' + _JA_HAN + r')' + _ja_after(_JA_HIRA, _JA_KATA, _JA_LGC) +
+             r'|(?=' + _JA_KATA + r')' + _ja_after(_JA_HIRA, _JA_HAN, _JA_LGC) +
+             r'|(?=' + _JA_LGC + r')' + _ja_after(_JA_HIRA, _JA_HAN, _JA_KATA) + r')')
+_JA_LETTERS = r'(?:(?!' + _JA_BREAK + r')[\p{Ll}\p{Lo}\p{Lm}])*'
+SPLIT_JA_REGEX = (r'( ?(?:[\p{Ll}\p{Lo}\p{Lm}]' + _JA_LETTERS + r'|(?:\p{Lu}\p{Ll}|\p{Lt})' + _JA_LETTERS +
+                  r'|\p{Lu}\p{Lu}(?:(?!' + _JA_BREAK + r')[\p{Lu}\p{Lo}\p{Lm}])*(?!\p{Ll})'
+                  r'|\d+|(?<! )(\s)\2*|</?(?:su[bp]|u)>|\{(?:==|\+\+|--)|(?:==|\+\+|--)\}|(.)\3*))')
+
+# named pre-split regexes (e.g. for command line selection)
+SPLIT_REGEXES = {"default": SPLIT_REGEX, "ja": SPLIT_JA_REGEX}
+
 PAD_TOKEN = "[PAD]" # padding token
 UNK_TOKEN = "[UNK]" # unknown token (should never happen because we escape all text - also used if something goes wrong in model.encode)
 BOT_TOKEN = "[BOT]" # beginning of text token

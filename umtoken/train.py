@@ -3,13 +3,15 @@ import regex as re
 import argparse
 import json
 import hashlib
+import unicodedata
 from collections import Counter
 from typing import List
 
 from tqdm import tqdm
 
 from .alphabet import get_alphabet
-from .pre import NORMALIZATIONS, PreTokenizer
+from .pre import NORMALIZATIONS, SPLIT_REGEXES, PreTokenizer
+from .model import NO_EOW_REGEXES
 from .trainer import Trainer, TrainerConfig
 from .langs import get_rules
 from .tokenizer import Tokenizer
@@ -17,6 +19,16 @@ from .utils import expand_languages
 
 def replace_continue_char(w, cc):
     return w.replace(cc, "\u00AD") if len(w) > 1 else w
+
+def read_alphabet_file(alphabet_file: str, alphabet: str, normalization: str) -> str:
+    """Returns the characters of ``alphabet_file`` that are missing in ``alphabet``.
+    Characters are normalized and lowercased (as the pre-tokenizer does);
+    whitespace and control characters are skipped (they are escaped anyway)."""
+    pre = PreTokenizer(normalization=normalization)
+    with open(alphabet_file, 'r', encoding="utf8") as f:
+        text = "".join(pre.normalize(line) for line in f).lower()
+    extra = {c for c in text if not c.isspace() and unicodedata.category(c)[0] != "C"}
+    return "".join(sorted(extra - set(alphabet)))
 
 def main(args):
     assert len(args.input_file) > 0, "No input files specified."
@@ -27,7 +39,13 @@ def main(args):
     # capture the return value so we don't carry duplicates through the rest of the run
     languages: List[str] = expand_languages(list(args.languages))
     args.languages = languages
+    if "ja" in languages and (args.split_regex != "ja" or args.no_eow != "ja"):
+        print("Warning: ja is usually trained with --split-regex ja --no-eow ja (and normalization ipt-cjk).")
     alphabet = get_alphabet(languages)
+    if args.alphabet_file:
+        extra_chars = read_alphabet_file(args.alphabet_file, alphabet, args.normalization)
+        print(f"Adding {len(extra_chars)} characters from {args.alphabet_file} to the alphabet.")
+        alphabet += extra_chars
 
     # config
     config = TrainerConfig(
@@ -41,13 +59,15 @@ def main(args):
         min_balance_langs=args.min_balance_langs,
         min_base_len=args.min_base_len,
         additional_reserved_tokens=args.reserved_token,
-        force_slow=args.allow_unconditional_ops # building the stem trie may take a long time when there are unconditional ops
+        force_slow=args.allow_unconditional_ops, # building the stem trie may take a long time when there are unconditional ops
+        no_eow_regex=NO_EOW_REGEXES[args.no_eow] if args.no_eow else None
     )
     trainer = Trainer(config)
     pre = PreTokenizer(alphabet=config.alphabet, 
                        reserved_tokens=config.reserved_tokens, 
                        preserve_soft_hyphen=True,
-                       normalization=args.normalization)
+                       normalization=args.normalization,
+                       split_regex=SPLIT_REGEXES[args.split_regex])
     rules = get_rules(languages if not args.no_rules else [], 
                       drop_constraints=args.no_constraints, 
                       drop_penalties=args.no_penalties,
@@ -217,6 +237,9 @@ if __name__ == '__main__':
                         default=["eu3"],
                         nargs="+",
                         help="languages to train for (default: eu3)")
+
+    parser.add_argument("-af", "--alphabet-file",
+                        help="text file with further characters to add to the alphabet of the languages; characters are normalized (see --normalization) and lowercased, whitespace is ignored (default: None)")
     
     parser.add_argument("-t", "--tie",
                         action="store_true",
@@ -226,7 +249,17 @@ if __name__ == '__main__':
                         choices=NORMALIZATIONS,
                         default="default",
                         help="unicode normalization to apply to input words (default: default)")
-    
+
+    parser.add_argument("-s", "--split-regex",
+                        choices=list(SPLIT_REGEXES),
+                        default="default",
+                        help="pre-split regex of the tokenizer; should match the one used for extracting the input words (default: default)")
+
+    parser.add_argument("-ne", "--no-eow",
+                        choices=list(NO_EOW_REGEXES),
+                        default=None,
+                        help="encode words of the given script (ja: kanji/kana) without end-of-word marker; their suffix rules end words on detokenization (default: None)")
+
     parser.add_argument("-nr", "--no-rules",
                         action="store_true",
                         help="use only necessary default rules (default: False)")
