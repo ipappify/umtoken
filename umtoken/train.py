@@ -20,12 +20,13 @@ from .utils import expand_languages
 def replace_continue_char(w, cc):
     return w.replace(cc, "\u00AD") if len(w) > 1 else w
 
-def read_alphabet_file(alphabet_file: str, alphabet: str) -> str:
+def read_alphabet_file(alphabet_file: str, alphabet: str, normalization: str) -> str:
     """Returns the characters of ``alphabet_file`` that are missing in ``alphabet``.
-    Characters are NFC-normalized and lowercased (as the pre-tokenizer does);
+    Characters are normalized and lowercased (as the pre-tokenizer does);
     whitespace and control characters are skipped (they are escaped anyway)."""
+    pre = PreTokenizer(normalization=normalization)
     with open(alphabet_file, 'r', encoding="utf8") as f:
-        text = unicodedata.normalize("NFC", f.read()).lower()
+        text = "".join(pre.normalize(line) for line in f).lower()
     extra = {c for c in text if not c.isspace() and unicodedata.category(c)[0] != "C"}
     return "".join(sorted(extra - set(alphabet)))
 
@@ -42,7 +43,7 @@ def main(args):
         print("Warning: ja is usually trained with --split-regex ja --no-eow ja (and normalization ipt-cjk).")
     alphabet = get_alphabet(languages)
     if args.alphabet_file:
-        extra_chars = read_alphabet_file(args.alphabet_file, alphabet)
+        extra_chars = read_alphabet_file(args.alphabet_file, alphabet, args.normalization)
         print(f"Adding {len(extra_chars)} characters from {args.alphabet_file} to the alphabet.")
         alphabet += extra_chars
 
@@ -238,7 +239,7 @@ if __name__ == '__main__':
                         help="languages to train for (default: eu3)")
 
     parser.add_argument("-af", "--alphabet-file",
-                        help="text file with further characters to add to the alphabet of the languages; characters are lowercased, whitespace is ignored (default: None)")
+                        help="text file with further characters to add to the alphabet of the languages; characters are normalized (see --normalization) and lowercased, whitespace is ignored (default: None)")
     
     parser.add_argument("-t", "--tie",
                         action="store_true",
