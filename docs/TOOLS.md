@@ -1,6 +1,6 @@
 # Command line tools
 
-Four modules, run in this order when training a tokenizer from scratch:
+Four modules, run in this order when training a tokenizer from scratch (`info.py` shows a summary of a trained tokenizer):
 
 ```
 extract.py  →  train.py  →  test.py / eval.py
@@ -110,6 +110,40 @@ python -m umtoken.test -t <tokenizer_path> -i <input_path>
 ```bash
 python -m umtoken.test -t "~/data/super_eurlex/tokenizers/eu3_24k_tied.json" -i "~/data/test/en.txt"
 ```
+
+## Inspect tokenizer (`info.py`)
+
+Prints vocabulary size, rule count (in total, with end-of-word marker, with
+regex op, and per language) and the pre-tokenizer settings of tokenizer files.
+The file is read as json, so this is fast even for large tokenizers.
+
+```bash
+python -m umtoken.info <tokenizer_path> [<tokenizer_path> ...] [-j]
+```
+
+| option | meaning |
+|---|---|
+| `-j`, `--json` | output as json |
+
+```bash
+python -m umtoken.info assets/eu24_96k.json
+```
+
+```
+assets/eu24_96k.json
+  vocab size:      98304
+  rules:           2661 (eow: 2649, with op: 183)
+  rules by lang:   bg: 240, cs: 228, ..., sv: 75
+  langs:           bg, cs, ..., sv (tied)
+  alphabet size:   231
+  reserved tokens: 32
+  normalization:   default
+  split regex:     default
+  no eow:          None
+  thumbprint:      4LsHYM+M
+```
+
+Rules shared by several languages are counted for each of them.
 
 ## Evaluate tokenizer (`eval.py`)
 
