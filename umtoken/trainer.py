@@ -3,6 +3,7 @@
 import os
 import regex as re
 from collections import Counter
+from itertools import accumulate
 from typing import Dict, List, Optional, Tuple, Union
 from multiprocessing import Pool
 
@@ -46,6 +47,8 @@ DEFAULT_UTF8_SEED = (
 DEFAULT_ALPHA = 1.0
 DEFAULT_BETA = 0.02
 
+_han_regex = re.compile(r'\p{Script=Han}')
+
 class TrainerConfig():
     def __init__(self,
                  vocab_size: int = 24 * 1024,
@@ -71,7 +74,8 @@ class TrainerConfig():
                  min_balance_langs: Optional[float] = None,
                  workers: int = 0,
                  force_slow: bool = False,
-                 no_eow_regex: Optional[str] = None
+                 no_eow_regex: Optional[str] = None,
+                 max_han: Optional[int] = None
                  ):
         """unimorph trainer configuration.
         
@@ -105,6 +109,8 @@ class TrainerConfig():
                         Note that each worker needs to build its own trie. If the number of workers is high,
                         it may be preferrable to use force_slow=True to prevent building the stem trie.
             no_eow_regex: Words matching this regex (unescaped) are trained without end-of-word marker (see model.NO_EOW_REGEXES).
+            max_han: Maximum number of kanji/hanzi per candidate token (default: None = no limit).
+                     Only kanji in the alphabet are counted (escaped kanji are limited by max_token_length).
         """
         assert iterations > 1
 
@@ -135,6 +141,7 @@ class TrainerConfig():
         self.workers = workers if workers > 0 else os.cpu_count()
         self.force_slow = force_slow
         self.no_eow_regex = no_eow_regex
+        self.max_han = max_han
 
 class Trainer():
     def __init__(self, config: TrainerConfig):
@@ -323,12 +330,17 @@ class Trainer():
             The candidates.
         """
         token_regex = re.compile(self.config.token_regex) if self.config.token_regex is not None else None
+        max_han = self.config.max_han
         candidates = Counter()
         for word, count in words:
             # avoid dangling end-of-word markers
             word_len = len(word) - 1 if word.endswith(ASCII_RESERVED_EOW) else len(word)
+            # han[k]: number of kanji in word[:k] (kanji that are not in the alphabet are escaped and not counted)
+            han = list(accumulate((1 if _han_regex.match(c) else 0 for c in word), initial=0)) if max_han is not None else None
             for i in range(word_len):
                 for j in range(i + 2, min(i + self.config.max_token_length, word_len) + 1):
+                    if han is not None and han[j] - han[i] > max_han:
+                        break
                     token = word[i:j]
                     if token_regex and not token_regex.match(token):
                         continue

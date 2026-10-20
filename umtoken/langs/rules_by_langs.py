@@ -78,7 +78,7 @@ def get_rules(languages: List[str],
         The rules for the languages
     """
         
-    rules = DEFAULT_RULES
+    rules = list(DEFAULT_RULES) # copy: += below must not extend the shared default rules
     for lang in languages:
         lang_rules = RULES_BY_LANGS.get(lang, None)
         if lang_rules is not None:

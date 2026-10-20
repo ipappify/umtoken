@@ -36,6 +36,19 @@ def test_rules():
         ("食べられる", "食べ[る->]+られる"),
         ("高くない", "高[い->]+くない"),
         ("高かった", "高[い->]+かった"),
+        # verb forms + particle
+        ("参照すると", "参照+すると"),
+        ("参照しては", "参照+しては"),
+        ("含まれるが", "含[む->ま]+れるが"),
+        ("書いたが", "書[く->い]+たが"),
+        ("泳いでいるか", "泳[ぐ->い]+でいるか"),
+        ("食べないと", "食べ[る->]+ないと"),
+        ("食べてから", "食べ[る->]+てから"),
+        ("形態において", "形態+において"),
+        # kana-only grammatical verbs and adjectives
+        ("であった", "であ[る->っ]+た"),
+        ("されている", "され[る->]+ている"),
+        ("よく", "よ[い->]+く"),
     ]
 
     morpher = Morpher([_lang], get_bases(examples), rules=JA_RULES)
@@ -44,6 +57,13 @@ def test_rules():
         ids = decompose(word, morpher)
         actual = format(ids, morpher)
         assert expected in actual
+
+def test_no_made_up_verbs():
+    # function words must not be analyzed as inflected kana-only "verbs" (まる, はまる, よう)
+    morpher = Morpher([_lang], ["まる", "はまる", "よう", "また", "は"], rules=JA_RULES)
+    for word in ["また", "または", "まず", "はまた", "よって"]:
+        actual = format(decompose(word, morpher), morpher)
+        assert "[" not in actual, f"{word}: {actual}"
 
 def test_split_regex():
     examples = [
