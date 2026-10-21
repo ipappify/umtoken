@@ -60,7 +60,8 @@ def main(args):
         min_base_len=args.min_base_len,
         additional_reserved_tokens=args.reserved_token,
         force_slow=args.allow_unconditional_ops, # building the stem trie may take a long time when there are unconditional ops
-        no_eow_regex=NO_EOW_REGEXES[args.no_eow] if args.no_eow else None
+        no_eow_regex=NO_EOW_REGEXES[args.no_eow] if args.no_eow else None,
+        max_han=args.max_kanji
     )
     trainer = Trainer(config)
     pre = PreTokenizer(alphabet=config.alphabet, 
@@ -259,6 +260,11 @@ if __name__ == '__main__':
                         choices=list(NO_EOW_REGEXES),
                         default=None,
                         help="encode words of the given script (ja: kanji/kana) without end-of-word marker; their suffix rules end words on detokenization (default: None)")
+
+    parser.add_argument("-mk", "--max-kanji",
+                        type=int,
+                        default=None,
+                        help="maximum number of kanji per vocab entry, e.g. 3 to avoid compounds (only kanji in the alphabet are counted, see --alphabet-file) (default: no limit)")
 
     parser.add_argument("-nr", "--no-rules",
                         action="store_true",

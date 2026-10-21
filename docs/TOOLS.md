@@ -28,6 +28,7 @@ python -m umtoken.extract -i <input_path> -c <column_name> -o <output_path> [-l 
 | `-f`, `--min-frequency` | minimum frequency for a word to be kept |
 | `-lr`, `--lang-regex` | regex extracting the language code from the filename; group 1 is used |
 | `-lc`, `--lang-column-name` | column holding the language; one column, or one per `--column-name` |
+| `-s`, `--split-regex` | pre-split regex: `default` or `ja` (must match the one used for training) |
 
 Depending on the file type you may need extra packages — `polars` for parquet,
 `pyzstd` for zstd-compressed input:
@@ -79,6 +80,10 @@ python -m umtoken.train -i <lang_vocab_pairs> -c <cache_dir> -l <languages> -v <
 | `-l`, `--languages` | languages to include (e.g. `eu3`) |
 | `-t`, `--tie` | tie vocabulary and rules by language |
 | `-n`, `--normalization` | `default`, `ipt`, `ipt-cjk`, `nfc` (default: `default`) |
+| `-af`, `--alphabet-file` | text file with further characters for the alphabet (e.g. kanji); normalized and lowercased |
+| `-s`, `--split-regex` | pre-split regex: `default` or `ja` (must match the one used with `extract.py`) |
+| `-ne`, `--no-eow` | encode words of a script without end-of-word marker: `ja` |
+| `-mk`, `--max-kanji` | maximum number of kanji per vocabulary entry (default: no limit) |
 | `-w`, `--workers` | worker count; 0 = one per CPU (default: 0) |
 | `-its`, `--iterations` | number of EM iterations (default: 10) |
 | `--no-rules` | use only the necessary default rules |
